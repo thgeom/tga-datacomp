@@ -4,6 +4,7 @@ from pkg01.dataoutput import *
 from pkg02.cadlib import *
 import matplotlib.pyplot as plt
 
+"""
 workdir = "d:/TGA_TEST/datacomp/"
 csvfile = "RTK_X-sec.csv"
 csvcolumns = ["Code", "Name", "E", "N", "Z"]
@@ -12,6 +13,7 @@ xscode_layer = "XS_Code"
 xsname_layer = "XS_Name"
 xspoint_layer = "XS_Point"
 xlsfile = "ac_out.xlsx"
+"""
 
 top = Tk()
 
@@ -19,29 +21,32 @@ top = Tk()
 # :project parameter shall be utilized for data manipulation
 def setparams():
     global doc, cadapp
-    global workdir, rtkfile, rtkcolumns, rtkencoding
+    global workdir, csvfile, csvcolumns, csvencoding
     global xsline_layer, chn_layer
     global xscode_layer, xsname_layer, xspoint_layer
     global xsline_completed_layer
     global completed_color, Buffer
+    global filter_code, filter_content
+    global xlsfile
 
     workdir = proj_params['WorkDirectory']
-    rtkfile = proj_params['RTKDatatFile']
-    rtkcolumns = proj_params['RTKColumns']
-    rtkencoding = proj_params['RTKEncoding']
+    csvfile = proj_params['CSVDatatFile']
+    csvcolumns = proj_params['CSVColumns']
+    csvencoding = proj_params['CSVEncoding']
     #outfile = proj_params['OutputCsvFile']
-    #xlsfile = proj_params['OutputXlsFile']
+    xlsfile = proj_params['OutputXlsFile']
     cadapp = proj_params['CadApp']
     xsline_layer = proj_params['XSLineLayer']
     chn_layer = proj_params['ChainageLayer']
     xscode_layer = proj_params['XSCodeLayer']
     xsname_layer = proj_params['XSNameLayer']
     xspoint_layer = proj_params['XSPointLayer']
-    #xscomppoint_layer = proj_params['XSComputedPointLayer']
-    #drawxscomppoint = proj_params['DrawXSComputedPoint']
+
     completed_color = proj_params['CompletedColor']
     xsline_completed_layer = proj_params['XSLineCompletedLayer']
     Buffer = proj_params['Buffer']
+    filter_code = proj_params['FilterCode']
+    filter_content = proj_params['FilterContent']
 
     doc = is_cadopen()                          # Checking AutoCAD is opened or not?
     if doc is None:
@@ -65,11 +70,13 @@ def selectfile():
         warn_message(msg)
         return
     conn_ok = setparams()               # Check parameters & CAD connection
-    if rtkfile != '' and workdir != '' and conn_ok:
+    #print(conn_ok)
+    if csvfile != '' and workdir != '' and conn_ok:
         cad.entryconfig(0, state=NORMAL)
     if cadapp != '' and workdir != '' and conn_ok:
         #cad.entryconfig(1, state=NORMAL)
         cad.entryconfig(2, state=NORMAL)
+        cad.entryconfig(3, state=NORMAL)
         statusbox(sta_label, 'AutoCAD connected.')
 
 # Import CSV & Plot
@@ -95,15 +102,20 @@ def cr_cadpoints():
 def select_by_polygon():
     global ass9
 
+    #filter_code = [0, 1, 8]
+    #filter_content = ['Text', 'ป่า', xscode_layer]
+    doc = is_cadready()
+    if not doc:
+        return False
     objSel = doc.Utility.GetEntity()                  # Get XS_Line entity by pick
     #return (<COMObject GetEntity>, (506465.30556296057, 1861201.4573297906, 0.0))
     obj = objSel[0]
     pnts = getpnts_polygon(obj)
-    print(pnts)
+    #print(pnts)
     ass9 = AcSelectionSets('SS9')
     #ass9.ssCond([0, 8], ['Text', xscode_layer])              # Select all as condition
     pnts = vtFloat(pnts)
-    ass9.ssPolygonCond(pnts, [0, 1, 8], ['Text', 'ป่า', xscode_layer])  # Select by Polygon as condition
+    ass9.ssPolygonCond(pnts, filter_code, filter_content)  # Select by Polygon as condition
     #print('{} Texts selected'.format(ass9.slset.count))
     msg = '>>>> Total {} Texts selected.'.format(ass9.slset.count)
     show_message(msg)
@@ -128,8 +140,8 @@ def main():
     global doc, cad, sta_label
 
     #plotCSV()
-    cadopen = is_cadopen()
-    doc = is_cadready()
+    #cadopen = is_cadopen()
+    #doc = is_cadready()
 
     #cr_pl('test_poly')
     #cr_circle('test_circle')
@@ -150,14 +162,15 @@ def main():
     menubar.add_cascade(label="File", menu=file)
     cad = Menu(menubar, tearoff=0)
     draw = Menu(menubar, tearoff=0)
-    cad.add_command(label="Import points", command=plotCSV)
+    cad.add_command(label="Import points", state=DISABLED, command=plotCSV)
     cad.add_command(label="Create CAD points", state=DISABLED, command=cr_cadpoints)
-    cad.add_cascade(label="Draw", menu=draw)
+    cad.add_cascade(label="Draw", state=DISABLED, menu=draw)
     draw.add_command(label='Circle', command=cr_circle)
     draw.add_command(label='Line', state=DISABLED, command=cr_line)
     draw.add_command(label='Polyline', command=cr_pl)
-    cad.add_command(label="Select by Polygon", command=select_by_polygon)
-    cad.add_command(label="Data->Excel", command=dt2file)
+    cad.add_command(label="Select by Polygon", state=DISABLED, command=select_by_polygon)
+    #cad.add_command(label="Select by Polygon", command=select_by_polygon)
+    cad.add_command(label="Data->Excel", state=DISABLED, command=dt2file)
 
     cad.add_separator()
 

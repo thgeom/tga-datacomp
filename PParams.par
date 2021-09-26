@@ -1,11 +1,11 @@
 {
-"WorkDirectory" : "d:/TGA_TEST/RTK/",
-"RTKDatatFile" : "RTK_X-sec.csv",
-"RTKColumns" : ["Code", "Name", "E", "N", "Z"],
-"RTKEncoding" : "TIS-620",
+"WorkDirectory" : "d:/TGA_TEST/datacomp/",
+"CSVDatatFile" : "RTK_X-sec.csv",
+"CSVColumns" : ["Code", "Name", "E", "N", "Z"],
+"CSVEncoding" : "TIS-620",
 "DrawingFile" : "tga-datacomp.dwg",
 "OutputCsvFile" : "xsec-0.csv",
-"OutputXlsFile" : "xsec-0.xlsx",
+"OutputXlsFile" : "ac-out.xlsx",
 "CadApp" : "rtk_xs",
 "XSLineLayer" : "XS_Line",
 "ChainageLayer" : "CHN_Layer",
@@ -18,12 +18,12 @@
 "XSLineCompletedLayer" : "XS_Line_Completed",
 "Buffer" : 10,
 "FilterCode" : [0, 1, 8],
-"FilterContent" : ['Text', 'ªË“', "XS_Code"]
+"FilterContent" : ["Text", "‡∏õ‡πà‡∏≤", "XS_Code"]
 }
 # Note:
 # List of folder & files 
 #===============
-# "WorkDirectory" : "d:/TGA_Test/RTK/"
+# "WorkDirectory" : "d:/TGA_Test/datacomp/"
 # "RTKDatatFile" : "RTK_X-sec.csv""   ; case insensitive
 # "DrawingFile" : "RTK_Point.dwg"   ; case insensitive
 # "OutputCsvFile" : "xsec-0.csv"
