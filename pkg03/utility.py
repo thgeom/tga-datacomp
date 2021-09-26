@@ -5,7 +5,7 @@ from tkinter import messagebox
 
 # Get Project Parameters from .par file
 def getProjParams(fdir, inpfile):
-    fctr = open(fdir + inpfile, "r")
+    fctr = open(fdir + inpfile, "r", encoding='UTF-8')
     try:
         contents = fctr.read()
         fctr.close()
