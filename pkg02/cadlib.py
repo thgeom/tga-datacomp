@@ -35,7 +35,7 @@ def is_cadready():
         print('File {} connected.'.format(doc.Name))
         #doc.Utility.Prompt("Execute from python\n")
         cadready = True
-        return doc
+        #return doc
     except AttributeError:
         #print('Connect to AutoCAD failed!!!')
         #print('Press Esc on AutoCAD window then try again.')
@@ -43,6 +43,7 @@ def is_cadready():
         msg += 'Press Esc on AutoCAD window then try again.'
         warn_message(msg)
         return cadready
+    return doc
 
 # Declare code dictionary
 codedict = {0:['Text', 'Line', 'Circle'], 1:['TextString', None, None], 8:['Layer', 'Layer', 'Layer'],
@@ -328,13 +329,26 @@ def cr_pl(lay=''):
 
 # Create circle by specified layer
 def cr_circle(lay=''):
+    doc = is_cadready()
+    if doc is None:
+        return False
+    cc = r = None
+    #print(doc)
     doc.Utility.Prompt('Pick center of circle:')
-    cc = doc.Utility.GetPoint()
+    try:
+        cc = doc.Utility.GetPoint()
+    except:
+        cc = None
     doc.Utility.Prompt('Enter radius of circle:')
-    r = doc.Utility.GetReal()
-    ccObj = make_circle(cc, r, lay)
-    doc.Application.Update()
-    return ccObj
+    try:
+        r = doc.Utility.GetReal()
+    except:
+        r = None
+    if cc and r:
+        ccObj = make_circle(cc, r, lay)
+        doc.Application.Update()
+        return ccObj
+    return None
 
 # Draw points in CAD
 def pts2ac(pts, code_lay, name_lay, point_lay):
@@ -369,6 +383,9 @@ def pts2ac(pts, code_lay, name_lay, point_lay):
 
 #==========
 def csv2ac(csvdt, code_lay, name_lay, point_lay):
+    doc = is_cadready()
+    if doc is None:
+        return False
     print('Drawing Name is {}'.format(doc.Name))                        # Print ACAD Dwg. name
     print('Import Field data CSV format')
     #acprompt('Hi, from Python : To manage RTK\n')
