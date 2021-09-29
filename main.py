@@ -100,12 +100,12 @@ def cr_cadpoints():
 
 # Entities selection
 def select_by_polygon():
-    global ass9
+    global doc, ass9
 
     #filter_code = [0, 1, 8]
     #filter_content = ['Text', 'ป่า', xscode_layer]
     doc = is_cadready()
-    if not doc:
+    if doc is None:
         return False
     objSel = doc.Utility.GetEntity()                  # Get XS_Line entity by pick
     #return (<COMObject GetEntity>, (506465.30556296057, 1861201.4573297906, 0.0))
@@ -119,6 +119,7 @@ def select_by_polygon():
     #print('{} Texts selected'.format(ass9.slset.count))
     msg = '>>>> Total {} Texts selected.'.format(ass9.slset.count)
     show_message(msg)
+    cad.entryconfig(4, state=NORMAL)                # Enable Data->Excel menu
 
     """
     for i in ass9.slset:
