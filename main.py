@@ -76,7 +76,9 @@ def selectfile():
     if cadapp != '' and workdir != '' and conn_ok:
         #cad.entryconfig(1, state=NORMAL)
         cad.entryconfig(2, state=NORMAL)
-        cad.entryconfig(3, state=NORMAL)
+        #cad.entryconfig(3, state=NORMAL)
+        select.entryconfig(0, state=NORMAL)
+        select.entryconfig(1, state=NORMAL)
         statusbox(sta_label, 'AutoCAD connected.')
 
 # Import CSV & Plot
@@ -85,18 +87,49 @@ def plotCSV():
 
     csvdata = getCSV(workdir, csvfile, csvcolumns, csvencoding)
     #csvdata.show_data()
-    #plt.figure(figsize=(9,9))
+    plt.figure(figsize=(8,6))
     for pt in csvdata.restab.values:
         plt.plot(pt[2], pt[3], 'r+')
     plt.ylabel('Northing')
     plt.xlabel('Easting')
     plt.title('Location of CSV Points')
+    plt.gca().set_aspect('equal')
     plt.show()
     cad.entryconfig(1, state=NORMAL)
 
 # Create points from CSV data
 def cr_cadpoints():
     csv2ac(csvdata, xscode_layer, xsname_layer, xspoint_layer)
+
+# Entities selection
+def select_by_click():
+    global doc, ass9
+
+    doc = is_cadready()
+    if doc is None:
+        return False
+    objSel = ()
+    try:
+        ass9
+    except:
+        ass9 = AcSelectionSets('SS9')
+
+    while objSel != None:
+        try:
+            doc.Utility.Prompt('Select object <Enter to end>')
+            objSel = doc.Utility.GetEntity()                  # Get entity by pick
+            #return (<COMObject GetEntity>, (506465.30556296057, 1861201.4573297906, 0.0))
+        except:
+            objSel = None
+        #print(objSel)
+        if objSel is not None:
+            obj = objSel[0]
+            ass9.slset.AddItems(vtobj([obj]))
+
+    if ass9.slset.count > 0:
+        msg = '>>>> Total {} Entities selected.'.format(ass9.slset.count)
+        show_message(msg)
+        select.entryconfig(2, state=NORMAL)                # Enable Data->Excel menu
 
 # Entities selection
 def select_by_polygon():
@@ -119,7 +152,7 @@ def select_by_polygon():
     #print('{} Texts selected'.format(ass9.slset.count))
     msg = '>>>> Total {} Texts selected.'.format(ass9.slset.count)
     show_message(msg)
-    cad.entryconfig(4, state=NORMAL)                # Enable Data->Excel menu
+    select.entryconfig(3, state=NORMAL)                # Enable Data->Excel menu
 
     """
     for i in ass9.slset:
@@ -133,12 +166,20 @@ def data2file(slset):
     dt4file.show_data()
     dt4file.dt2File(csvencoding)
 
+# For menu call : Data->CSV
+def dt2txt():
+    txtoutfile = "Out.txt"
+    dt4txt = Data4Txt(workdir, txtoutfile)
+    dt4txt.dtAdd(ass9.slset)
+    dt4txt.show_data()
+    dt4txt.dt2TxtFile()
+
 # For menu call
 def dt2file():
     data2file(ass9.slset)
 
 def main():
-    global doc, cad, sta_label
+    global doc, cad, select, sta_label
 
     #plotCSV()
     #cadopen = is_cadopen()
@@ -162,6 +203,7 @@ def main():
 
     menubar.add_cascade(label="File", menu=file)
     cad = Menu(menubar, tearoff=0)
+    select = Menu(menubar, tearoff=0)
     draw = Menu(menubar, tearoff=0)
     cad.add_command(label="Import points", state=DISABLED, command=plotCSV)
     cad.add_command(label="Create CAD points", state=DISABLED, command=cr_cadpoints)
@@ -169,19 +211,23 @@ def main():
     draw.add_command(label='Circle', command=cr_circle)
     draw.add_command(label='Line', state=DISABLED, command=cr_line)
     draw.add_command(label='Polyline', command=cr_pl)
-    cad.add_command(label="Select by Polygon", state=DISABLED, command=select_by_polygon)
-    #cad.add_command(label="Select by Polygon", command=select_by_polygon)
-    cad.add_command(label="Data->Excel", state=DISABLED, command=dt2file)
 
-    cad.add_separator()
+    select.add_command(label="Select", state=DISABLED, command=select_by_click)
+    select.add_command(label="Select by Polygon", state=DISABLED, command=select_by_polygon)
+    #cad.add_command(label="Select by Polygon", command=select_by_polygon)
+    select.add_command(label="Data->Txt", state=DISABLED, command=dt2txt)
+    select.add_command(label="Data->Excel", state=DISABLED, command=dt2file)
+
+    select.add_separator()
 
     #edit.add_command(label="Cut")
     #edit.add_command(label="Copy")
     #edit.add_command(label="Paste")
     #edit.add_command(label="Delete")
-    cad.add_command(label="Select All", state=DISABLED)
+    select.add_command(label="Select All", state=DISABLED)
 
     menubar.add_cascade(label="CAD", menu=cad)
+    menubar.add_cascade(label="Select", menu=select)
     help = Menu(menubar, tearoff=0)
     help.add_command(label="About", state=DISABLED)
     menubar.add_cascade(label="Help", menu=help)
