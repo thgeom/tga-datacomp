@@ -154,11 +154,26 @@ def make_line(p1, p2, lay=''):
 # Create polyline
 def make_pline(pts, lay=''):
     plineObj = ms.AddPolyline(vtFloat(pts2pnts(pts)))
+    #print(dir(ms))
+    #plineObj = ms.AddLightWeightPolyline(vtFloat(pts2pnts(pts)))
+
     if lay != '':
         if not layerexist(lay):
             doc.Layers.Add(lay)
         plineObj.Layer = lay
     return plineObj
+
+# Create lwpolyline
+def make_lwpline(pts, lay=''):
+    #plineObj = ms.AddPolyline(vtFloat(pts2pnts(pts)))
+    #print(dir(ms))
+    lwplineObj = ms.AddLightWeightPolyline(vtFloat(pts2pnts(pts)))
+
+    if lay != '':
+        if not layerexist(lay):
+            doc.Layers.Add(lay)
+        lwplineObj.Layer = lay
+    return lwplineObj
 
 # Create circle
 def make_circle(pt, r, lay=''):
@@ -282,7 +297,7 @@ class AcSelectionSets:
         pycad_prompt('Number of entities {}/{} have been changed.'.format(i, self.slset.count))
 
 # Get pick points from CAD window
-def getpts(msg):
+def getpts(msg, D='3D'):
     pts = []
     pt = []
     pt0 = []
@@ -298,7 +313,10 @@ def getpts(msg):
                 doc.SendCommand(cmd)                            # Send (grdraw p1 p2 1) in AutoLISP format
             else:
                 pt = doc.Utility.GetPoint()                     # Get 1st point
-            pts.append(pt)
+            if D == '2D':
+                pts.append((pt[0], pt[1]))
+            else:
+                pts.append(pt)
             pt0 = pt
             i += 1
         except:
@@ -321,9 +339,13 @@ def cr_line(lay=''):
 
 # Create polyline by specified layer
 def cr_pl(lay=''):
-    pts = getpts('Pick polyline point')
+    doc = is_cadready()
+    if doc is None:
+        return False
+    pts = getpts('Pick polyline point', D='2D')
+    #print(pts)
     if len(pts)>1:
-        plObj = make_pline(pts, lay)
+        plObj = make_lwpline(pts, lay)
         #plObj = make_pline(pts, 'test_pl_lay')
         return plObj
 
