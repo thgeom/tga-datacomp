@@ -1,4 +1,5 @@
 from tkinter import filedialog as fd
+from tkinter import ttk
 from pkg01.datainput import *
 from pkg01.dataoutput import *
 from pkg02.cadlib import *
@@ -65,7 +66,7 @@ def selectfile():
     #print(proj_params)
     if proj_params == {}:
         msg = 'Incorrect Parameter File format!!!'
-        for i in range(4):
+        for i in range(3):
             cad.entryconfig(i, state=DISABLED)
         warn_message(msg)
         return
@@ -77,8 +78,9 @@ def selectfile():
         #cad.entryconfig(1, state=NORMAL)
         cad.entryconfig(2, state=NORMAL)
         #cad.entryconfig(3, state=NORMAL)
-        select.entryconfig(0, state=NORMAL)
-        select.entryconfig(1, state=NORMAL)
+        #select.entryconfig(0, state=NORMAL)
+        for i in range(4):
+            select.entryconfig(i, state=NORMAL)
         statusbox(sta_label, 'AutoCAD connected.')
 
 # Import CSV & Plot
@@ -101,22 +103,89 @@ def plotCSV():
 def cr_cadpoints():
     csv2ac(csvdata, xscode_layer, xsname_layer, xspoint_layer)
 
+# Condition Criteria
+def sel_criteria():
+    cond_w = Tk()
+    cond_w.geometry("350x180+400+200")   # Size & Position of the window
+    cond_w.title("Selection Criteria")   # Adding a title
+    def criteria_set():
+        global filter_criteria
+
+        sel_typ = cb1.get()           # selected option
+        sel_lay = cb2.get()
+        filter_criteria = [sel_typ, sel_lay]
+
+        print('Selection Criteria : {} <==> {}'.format(filter_code, filter_criteria))
+        cond_w.destroy()
+
+    def criteria_clear():
+        global filter_criteria
+
+        try:
+            #filter_criteria
+            del filter_criteria
+            print('Selection Criteria has been deleted.')
+        except:
+            pass
+
+    l1 = Label(master=cond_w, text="Entity type : ", width=12)
+    l1.grid(row=1,column=1)
+    typ_conds=['Point','Text', 'Circle'] # options
+    cb1 = ttk.Combobox(cond_w, values=typ_conds, width=10)  # Combobox
+    cb1.grid(row=1, column=2, padx=10, pady=20)             # adding to grid
+    cb1.set("Point")
+    l2= Label(master=cond_w, text="Entity layer : ", width=12)
+    l2.grid(row=2,column=1)
+    lay_conds=['*','XS_Code'] # options
+    cb2 = ttk.Combobox(cond_w, values=lay_conds, width=10)  # Combobox
+    cb2.grid(row=2, column=2, padx=10, pady=5)             # adding to grid
+    cb2.set("*")
+    b1 = Button(cond_w,text=" OK ", command=criteria_set)
+    b1.grid(row=3,column=2, padx=20, pady=25)
+    b2 = Button(cond_w,text=" Clear ", command=criteria_clear)
+    b2.grid(row=3,column=3, padx=20, pady=25)
+    cond_w.mainloop()   # Keep the window open
+
+# Entities selection
+def select_by_criteria():
+    global doc, ass9
+
+    filter_code = [0, 8]
+    #filter_cont = ['Text', 'XS_Code']
+    try:
+        filter_criteria
+    except:
+        print('Criteria not defined!!!')
+        return
+    doc = is_cadready()
+    if doc is None:
+        return False
+
+    try:
+        ass9
+    except:
+        ass9 = AcSelectionSets('SS9')
+    ass9.ssCond(filter_code, filter_criteria)              # Select all as condition
+    msg = '>>>> Total {} Entities selected.'.format(ass9.slset.count)
+    show_message(msg)
+    select.entryconfig(6, state=NORMAL)                # Enable Data->Excel menu
+
 # Entities selection
 def select_by_click():
-    global doc, ass9
+    global doc, ass8
 
     doc = is_cadready()
     if doc is None:
         return False
     objSel = ()
     try:
-        ass9
+        ass8
     except:
-        ass9 = AcSelectionSets('SS9')
+        ass8 = AcSelectionSets('SS8')
 
     while objSel != None:
         try:
-            doc.Utility.Prompt('Select object <Enter to end>')
+            doc.Utility.Prompt('Select LWPolyline <Enter to end>')
             objSel = doc.Utility.GetEntity()                  # Get entity by pick
             #return (<COMObject GetEntity>, (506465.30556296057, 1861201.4573297906, 0.0))
         except:
@@ -124,12 +193,13 @@ def select_by_click():
         #print(objSel)
         if objSel is not None:
             obj = objSel[0]
-            ass9.slset.AddItems(vtobj([obj]))
+            if obj.EntityName == 'AcDbPolyline':
+                ass8.slset.AddItems(vtobj([obj]))
 
-    if ass9.slset.count > 0:
-        msg = '>>>> Total {} Entities selected.'.format(ass9.slset.count)
+    if ass8.slset.count > 0:
+        msg = '>>>> Total {} Entities selected.'.format(ass8.slset.count)
         show_message(msg)
-        select.entryconfig(2, state=NORMAL)                # Enable Data->Excel menu
+        select.entryconfig(5, state=NORMAL)                # Enable Data->Excel menu
 
 # Entities selection
 def select_by_polygon():
@@ -146,13 +216,20 @@ def select_by_polygon():
     pnts = getpnts_polygon(obj)
     #print(pnts)
     ass9 = AcSelectionSets('SS9')
+
+    try:
+        #filter_criteria
+        filter_content = filter_criteria
+    except:
+        filter_content = proj_params['FilterContent']
+
     #ass9.ssCond([0, 8], ['Text', xscode_layer])              # Select all as condition
     pnts = vtFloat(pnts)
     ass9.ssPolygonCond(pnts, filter_code, filter_content)  # Select by Polygon as condition
     #print('{} Texts selected'.format(ass9.slset.count))
-    msg = '>>>> Total {} Texts selected.'.format(ass9.slset.count)
+    msg = '>>>> Total {} Entitiess selected.'.format(ass9.slset.count)
     show_message(msg)
-    select.entryconfig(3, state=NORMAL)                # Enable Data->Excel menu
+    select.entryconfig(6, state=NORMAL)                # Enable Data->Excel menu
 
     """
     for i in ass9.slset:
@@ -170,7 +247,7 @@ def data2file(slset):
 def dt2txt():
     txtoutfile = "Out.txt"
     dt4txt = Data4Txt(workdir, txtoutfile)
-    dt4txt.dtAdd(ass9.slset)
+    dt4txt.dtAdd(ass8.slset)
     dt4txt.show_data()
     dt4txt.dt2TxtFile()
 
@@ -212,14 +289,16 @@ def main():
     draw.add_command(label='Line', state=DISABLED, command=cr_line)
     draw.add_command(label='Polyline', command=cr_pl)
 
-    select.add_command(label="Select", state=DISABLED, command=select_by_click)
+    select.add_command(label="Select LWPolyline", state=DISABLED, command=select_by_click)
     select.add_command(label="Select by Polygon", state=DISABLED, command=select_by_polygon)
     #cad.add_command(label="Select by Polygon", command=select_by_polygon)
-    select.add_command(label="Data->Txt", state=DISABLED, command=dt2txt)
-    select.add_command(label="Data->Excel", state=DISABLED, command=dt2file)
-
+    select.add_command(label="Define Criteria >>", state=DISABLED, command=sel_criteria)
+    select.add_command(label="Select by Criteria", state=DISABLED, command=select_by_criteria)
     select.add_separator()
 
+    select.add_command(label="Data->Txt", state=DISABLED, command=dt2txt)
+    select.add_command(label="Data->Excel", state=DISABLED, command=dt2file)
+    select.add_separator()
     #edit.add_command(label="Cut")
     #edit.add_command(label="Copy")
     #edit.add_command(label="Paste")
@@ -235,7 +314,7 @@ def main():
     top.config(menu=menubar)
     top.geometry('605x400')
     top.geometry('+150+100')                 # Position ('+Left+Top')
-    top.title('THGeom Academy (Field data & CAD manipulation & Excel output)')
+    top.title('THGeom Academy (Field data & CAD manipulation & Export file)')
     sta_label = Label(top, text=': ', width=40)
     #sta_label.place(x=-1.0, rely=1.0, anchor='sw')
     sta_label.pack()
