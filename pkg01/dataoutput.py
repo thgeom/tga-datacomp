@@ -11,10 +11,22 @@ class Data4File:
         self.dtxls = []
 
     # Add each point in the selection set to data list
+    # Support only Text, Point and Circle
     def dtAdd(self, slset):
         for i in slset:
-            lst = list(i.InsertionPoint)
-            lst.insert(0, i.TextString)
+            etype = i.EntityName
+            if etype == 'AcDbText':
+                lst = list(i.InsertionPoint)
+                lst.insert(0, i.TextString)
+            elif etype == 'AcDbPoint':
+                lst = list(i.Coordinates)
+                lst.insert(0, 'X')
+            elif etype == 'AcDbCircle':
+                lst = list(i.Center)
+                lst.insert(0, 'O')
+            else:
+                pass
+            lst.append(i.Layer)
             self.dtxls.append(lst)
 
     def show_data(self):
@@ -23,7 +35,7 @@ class Data4File:
 
     # Writing data to Excel file using Pandas Data Frame
     def dt2File(self, dtenconding):
-        dfxls = pd.DataFrame(self.dtxls, columns=['Code', 'East', 'North', 'Elevation']) # DataFrame to Excel
+        dfxls = pd.DataFrame(self.dtxls, columns=['Code', 'East', 'North', 'Elevation', 'Layer']) # DataFrame to Excel
         xlsname = self.fdir + self.fxls
         print(dfxls)
         #writer = pd.ExcelWriter(xlsname, mode='w')
