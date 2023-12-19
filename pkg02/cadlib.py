@@ -2,7 +2,61 @@ import win32com.client                                                  # For Ap
 import pythoncom
 from pkg03.utility import *
 
+"""
+try:
+    acad = win32com.client.Dispatch("AutoCAD.Application")                  # AutoCAD connection
+    #print(acad.__dir__())
+    #print(acad._Release_)
+    #is_cadopen()
+    #print(f"{acad.Name} is running>>>>")
+except:
+    #print('AutoCAD not running!!!')
+    msg = 'AutoCAD is not Running!!!\n'
+    msg += 'Please open AutoCAD Drawing then try again.'
+    warn_message(msg)
+    #sys.exit(1)
+    quit(1)
+"""
+import psutil
+
+def is_autocad_process():
+    for process in psutil.process_iter(['pid', 'name']):
+        if 'acad.exe' in process.info['name'].lower():
+            #print(process)
+            #print(process.info['name'].upper())
+            return True
+    return False
+"""
+if is_autocad_running():
+    print("AutoCAD is running.")
+else:
+    print("AutoCAD is not running.")
+"""
+
+def is_autocad_running():
+    global acad
+    try:
+        # Try to create a COM object for AutoCAD
+        acad = win32com.client.Dispatch("AutoCAD.Application")
+        # If successful, AutoCAD is running
+        return True
+    except Exception as e:
+        # If an exception occurs, AutoCAD is not running
+        print(f"Error: {e}")
+        return False
+
+if is_autocad_process():
+    acad = win32com.client.Dispatch("AutoCAD.Application")
+else:
+    warn_message('AutoCAD is not Running!!!!!!')
+    quit(1)
+
+"""    
 acad = win32com.client.Dispatch("AutoCAD.Application")                  # AutoCAD connection
+print(acad.__dir__())
+print(acad.GetAcadState())
+print(f"ACAD Visible: {acad.Visible}")
+"""
 """
 Require pywin32
 """
@@ -14,7 +68,8 @@ def is_cadopen():
     cadopen = False
 
     #print(dir(acad))
-    if acad.Visible:
+    #if acad.Visible:
+    if is_autocad_running():
         cadopen = True
         #return doc
     else:
@@ -297,7 +352,7 @@ class AcSelectionSets:
         pycad_prompt('Number of entities {}/{} have been changed.'.format(i, self.slset.count))
 
 # Get pick points from CAD window
-def getpts(msg, D='3D'):
+def getpts(msg, D='3D', DL=True):
     pts = []
     pt = []
     pt0 = []
@@ -307,10 +362,13 @@ def getpts(msg, D='3D'):
         try:
             doc.Utility.Prompt(msg + ' No.{} <enter to end> : '.format(i+1))
             if i>0:
-                #print('Start point:', pt_vtpt(pt0))
-                pt = doc.Utility.GetPoint(pt_vtpt(pt0))         # GetPoint with draw line from prev. point
-                cmd = '(grdraw ' + '\'' + str(pt0).replace(",", "") + '\'' + str(pt).replace(",", "") + ' 1) '
-                doc.SendCommand(cmd)                            # Send (grdraw p1 p2 1) in AutoLISP format
+                if DL is True:
+                    #print('Start point:', pt_vtpt(pt0))
+                    pt = doc.Utility.GetPoint(pt_vtpt(pt0))         # GetPoint with draw line from prev. point
+                    cmd = '(grdraw ' + '\'' + str(pt0).replace(",", "") + '\'' + str(pt).replace(",", "") + ' 1) '
+                    doc.SendCommand(cmd)                            # Send (grdraw p1 p2 1) in AutoLISP format
+                else:
+                    pt = doc.Utility.GetPoint()
             else:
                 pt = doc.Utility.GetPoint()                     # Get 1st point
             if D == '2D':
@@ -398,7 +456,7 @@ def pts2ac(pts, code_lay, name_lay, point_lay):
         p_pt = ms.AddPoint(pt_vtpt(p1))
         p_pt.Layer = point_lay                                         # Define Point layer
         i = i + 1
-    msg = '\nTotal RTK {0:d} points imported to DWG.'.format(i)
+    msg = '\nTotal RTK {0:d} points imported to: <{1}>.'.format(i, doc.Name)
     acprompt(msg + '\n')  # Echo to ACAD with format
     #print('\nTotal RTK point = ' + str(i) + ', imported to DWG.')
     show_message(msg)                   # Print with format

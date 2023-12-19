@@ -22,7 +22,7 @@ def statusbox(label_id, msg, y=1.0):
     print(msg)
     label_id.configure(text=': '+msg, width=40, fg='#65B017')
     #label_id.pack()
-    label_id.place(relx=-0.1, rely=y, anchor=SW)
+    label_id.place(relx=-0.01, rely=y, anchor=SW)
     label_id.master.update()
 
 # Status message2
