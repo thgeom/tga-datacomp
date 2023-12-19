@@ -4,6 +4,8 @@ from pkg01.datainput import *
 from pkg01.dataoutput import *
 from pkg02.cadlib import *
 import matplotlib.pyplot as plt
+#import os, sys
+import subprocess
 
 """
 workdir = "d:/TGA_TEST/datacomp/"
@@ -17,12 +19,13 @@ xlsfile = "ac_out.xlsx"
 """
 
 top = Tk()
+#top.withdraw()  # Hide the main window
 
 # Set up parameters
 # :project parameter shall be utilized for data manipulation
 def setparams():
     global doc, cadapp
-    global workdir, csvfile, csvcolumns, csvencoding
+    global workdir, csvfile, csvcolumns, csvencoding, dwgfile
     global xsline_layer, chn_layer
     global xscode_layer, xsname_layer, xspoint_layer
     global xsline_completed_layer
@@ -34,6 +37,7 @@ def setparams():
     csvfile = proj_params['CSVDatatFile']
     csvcolumns = proj_params['CSVColumns']
     csvencoding = proj_params['CSVEncoding']
+    dwgfile = proj_params['DrawingFile']
     #outfile = proj_params['OutputCsvFile']
     xlsfile = proj_params['OutputXlsFile']
     cadapp = proj_params['CadApp']
@@ -49,17 +53,17 @@ def setparams():
     filter_code = proj_params['FilterCode']
     filter_content = proj_params['FilterContent']
 
-    doc = is_cadopen()                          # Checking AutoCAD is opened or not?
+    doc = is_cadready()                          # Checking AutoCAD is opened or not?
     if doc is None:
         return False
     return doc
 
 # Select parameter file
 def selectfile():
-    global proj_params
+    global proj_params, doc
 
     statusbox(sta_label, 'Open parameter file.')
-    parfile = fd.askopenfilename(title='Select Parameter File')
+    parfile = fd.askopenfilename(title='Select Parameter File',filetypes=[("Par file", "*.par")])
     if parfile == '':
         return
     proj_params = getProjParams('', parfile)
@@ -71,7 +75,7 @@ def selectfile():
         warn_message(msg)
         return
     conn_ok = setparams()               # Check parameters & CAD connection
-    #print(conn_ok)
+    #print(f"Connection to AutoCAD is : {conn_ok}")
     if csvfile != '' and workdir != '' and conn_ok:
         cad.entryconfig(0, state=NORMAL)
     if cadapp != '' and workdir != '' and conn_ok:
@@ -81,7 +85,13 @@ def selectfile():
         #select.entryconfig(0, state=NORMAL)
         for i in range(4):
             select.entryconfig(i, state=NORMAL)
-        statusbox(sta_label, 'AutoCAD connected.')
+        statusbox(sta_label, doc.Name + ' is connected.')
+        if doc.Name != dwgfile:
+            msg = 'Parameter of DrawFile is not the same as AutoCAD drawing!!!\n'
+            msg += '=====================\n'
+            msg += f"DrawFile = {dwgfile}\n"
+            msg += f"AutoCAD drawing = {doc.Name}"
+            warn_message(msg)
 
 # Import CSV & Plot
 def plotCSV():
@@ -103,7 +113,7 @@ def plotCSV():
 def cr_cadpoints():
     csv2ac(csvdata, xscode_layer, xsname_layer, xspoint_layer)
 
-# Condition Criteria
+# Setting Criteria
 def sel_criteria():
     cond_w = Tk()
     cond_w.geometry("350x180+400+200")   # Size & Position of the window
@@ -116,6 +126,7 @@ def sel_criteria():
         filter_criteria = [sel_typ, sel_lay]
 
         print('Selection Criteria : {} <==> {}'.format(filter_code, filter_criteria))
+        select.entryconfig(4, state=NORMAL)
         cond_w.destroy()
 
     def criteria_clear():
@@ -125,6 +136,7 @@ def sel_criteria():
             #filter_criteria
             del filter_criteria
             print('Selection Criteria has been deleted.')
+            select.entryconfig(4, state=DISABLED)
         except:
             pass
 
@@ -147,6 +159,37 @@ def sel_criteria():
     cond_w.mainloop()   # Keep the window open
 
 # Entities selection
+def select_by_entities():
+    global doc, ass9
+
+    doc = is_cadready()
+    if doc is None:
+        return False
+    objSel = ()
+    try:
+        ass9
+    except:
+        ass9 = AcSelectionSets('SS9')
+
+    while objSel != None:
+        try:
+            doc.Utility.Prompt('Select [Point/Text] <Enter to end>')
+            objSel = doc.Utility.GetEntity()                  # Get entity by pick
+            #return (<COMObject GetEntity>, (506465.30556296057, 1861201.4573297906, 0.0))
+        except:
+            objSel = None
+        #print(objSel)
+        if objSel is not None:
+            obj = objSel[0]
+            if obj.EntityName == 'AcDbPoint' or obj.EntityName == 'AcDbText':
+                ass9.slset.AddItems(vtobj([obj]))
+
+    if ass9.slset.count > 0:
+        msg = '>>>> Total {} Entities selected.'.format(ass9.slset.count)
+        show_message(msg)
+        select.entryconfig(7, state=NORMAL)                # Enable Data->Excel menu
+
+# Entities selection by specified criteria
 def select_by_criteria():
     global doc, ass9
 
@@ -168,10 +211,10 @@ def select_by_criteria():
     ass9.ssCond(filter_code, filter_criteria)              # Select all as condition
     msg = '>>>> Total {} Entities selected.'.format(ass9.slset.count)
     show_message(msg)
-    select.entryconfig(6, state=NORMAL)                # Enable Data->Excel menu
+    select.entryconfig(7, state=NORMAL)                # Enable Data->Excel menu
 
-# Entities selection
-def select_by_click():
+# LWPolyline Entities selection
+def select_by_clicklw():
     global doc, ass8
 
     doc = is_cadready()
@@ -199,9 +242,9 @@ def select_by_click():
     if ass8.slset.count > 0:
         msg = '>>>> Total {} Entities selected.'.format(ass8.slset.count)
         show_message(msg)
-        select.entryconfig(5, state=NORMAL)                # Enable Data->Excel menu
+        select.entryconfig(6, state=NORMAL)                # Enable Data->Txt menu
 
-# Entities selection
+# Entities selection by specified polygon
 def select_by_polygon():
     global doc, ass9
 
@@ -229,7 +272,7 @@ def select_by_polygon():
     #print('{} Texts selected'.format(ass9.slset.count))
     msg = '>>>> Total {} Entitiess selected.'.format(ass9.slset.count)
     show_message(msg)
-    select.entryconfig(6, state=NORMAL)                # Enable Data->Excel menu
+    select.entryconfig(7, state=NORMAL)                # Enable Data->Excel menu
 
     """
     for i in ass9.slset:
@@ -255,8 +298,14 @@ def dt2txt():
 def dt2file():
     data2file(ass9.slset)
 
+# Call tga_traverse.exe
+def traverse():
+    print('Traverse...')
+    #os.system('d:/TGA_TEST/datacomp/tga_traverse.exe')
+    subprocess.call('d:/TGA_TEST/datacomp/tga_traverse.exe')
+
 def main():
-    global doc, cad, select, sta_label
+    global acad, doc, cad, select, sta_label
 
     #plotCSV()
     #cadopen = is_cadopen()
@@ -268,45 +317,62 @@ def main():
     #data2file(ass9.slset)
 
     menubar = Menu(top)
+    # Add File menu
     file = Menu(menubar, tearoff=0)
     #file.add_command(label="New")
     file.add_command(label="Open", command=selectfile)
     #file.add_command(label="Save")
     #file.add_command(label="Save as...")
     #file.add_command(label="Close")
-
     file.add_separator()
     file.add_command(label="Exit", command=top.quit)
-
     menubar.add_cascade(label="File", menu=file)
+
+    # Add CAD menu
     cad = Menu(menubar, tearoff=0)
-    select = Menu(menubar, tearoff=0)
-    draw = Menu(menubar, tearoff=0)
     cad.add_command(label="Import points", state=DISABLED, command=plotCSV)
     cad.add_command(label="Create CAD points", state=DISABLED, command=cr_cadpoints)
+
+    # Add Draw submenu
+    draw = Menu(menubar, tearoff=0)
     cad.add_cascade(label="Draw", state=DISABLED, menu=draw)
     draw.add_command(label='Circle', command=cr_circle)
     draw.add_command(label='Line', state=DISABLED, command=cr_line)
     draw.add_command(label='Polyline', command=cr_pl)
+    menubar.add_cascade(label="CAD", menu=cad)
 
-    select.add_command(label="Select LWPolyline", state=DISABLED, command=select_by_click)
+    """
+    # Add Draw submenu
+    edit = Menu(menubar, tearoff=0)
+    edit.add_command(label="Cut")
+    edit.add_command(label="Copy")
+    edit.add_command(label="Paste")
+    edit.add_command(label="Delete")
+    menubar.add_cascade(label="Edit", menu=edit)
+    """
+
+    # Add Select menu
+    select = Menu(menubar, tearoff=0)
+    select.add_command(label="Select LWPolyline", state=DISABLED, command=select_by_clicklw)
+    select.add_command(label="Select Entities", state=DISABLED, command=select_by_entities)
     select.add_command(label="Select by Polygon", state=DISABLED, command=select_by_polygon)
     #cad.add_command(label="Select by Polygon", command=select_by_polygon)
     select.add_command(label="Define Criteria >>", state=DISABLED, command=sel_criteria)
     select.add_command(label="Select by Criteria", state=DISABLED, command=select_by_criteria)
     select.add_separator()
-
-    select.add_command(label="Data->Txt", state=DISABLED, command=dt2txt)
+    select.add_command(label="LWPolyline->Txt", state=DISABLED, command=dt2txt)
     select.add_command(label="Data->Excel", state=DISABLED, command=dt2file)
     select.add_separator()
-    #edit.add_command(label="Cut")
-    #edit.add_command(label="Copy")
-    #edit.add_command(label="Paste")
-    #edit.add_command(label="Delete")
     select.add_command(label="Select All", state=DISABLED)
-
-    menubar.add_cascade(label="CAD", menu=cad)
     menubar.add_cascade(label="Select", menu=select)
+
+    # Add Calc menu
+    calculate = Menu(menubar, tearoff=0)
+    calculate.add_command(label="Traverse", command=traverse)
+    calculate.add_command(label="Volume", state=DISABLED)
+    menubar.add_cascade(label="Calc", menu=calculate)
+
+    # Add Help menu
     help = Menu(menubar, tearoff=0)
     help.add_command(label="About", state=DISABLED)
     menubar.add_cascade(label="Help", menu=help)
