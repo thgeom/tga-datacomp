@@ -1,0 +1,31 @@
+{
+"WorkDirectory" : "d:/TGA_TEST/datacomp/",
+"CSVDatatFile" : "spot-4.csv",
+"CSVColumns" : ["Code", "Name", "Easting", "Northing", "Elevation"],
+"CSVEncoding" : "UTF-8",
+"DrawingFile" : "tga-datacomp-test-2023_XXX.dwg",
+"OutputCsvFile" : "xsec-0.csv",
+"OutputXlsFile" : "ac-out-5.xlsx",
+"CadApp" : "rtk_xs",
+"XSLineLayer" : "XS_Line",
+"ChainageLayer" : "CHN_Layer",
+"XSCodeLayer" : "XS_Code",
+"XSNameLayer" : "XS_Name",
+"XSPointLayer" : "XS_Point",
+"XSComputedPointLayer" : "XS_Computed",
+"DrawXSComputedPoint" : True,
+"CompletedColor"  :  5,
+"XSLineCompletedLayer" : "XS_Line_Completed",
+"Buffer" : 10,
+"FilterCode" : [0,  8],
+"FilterContent" : ["Text", "XS_Code"]
+}
+# Note:
+# List of folder & files 
+#===============
+# "WorkDirectory" : "d:/TGA_Test/datacomp/"
+# "RTKDatatFile" : "RTK_X-sec.csv""   ; case insensitive
+# "DrawingFile" : "RTK_Point.dwg"   ; case insensitive
+# "OutputCsvFile" : "xsec-0.csv"
+# "OutputXlsFile =  "ac-out.xlsx"
+
