@@ -3,6 +3,22 @@ import math
 from tkinter import *
 from tkinter import messagebox
 
+# Define root window
+def set_root_window():
+    #global top, sta_label, child_window
+    root = Tk()
+    root.title('Main window!')
+    root.geometry('200x100')
+    root.geometry('+200+300')
+
+    #top.lower()
+    #child_window = Toplevel(top)
+    #child_window.geometry('400x100')
+    #child_window.geometry('+200+300')
+    #child_window.title("Status Window")
+    return root
+
+
 # Get Project Parameters from .par file
 def getProjParams(fdir, inpfile):
     fctr = open(fdir + inpfile, "r", encoding='UTF-8')
