@@ -1,5 +1,9 @@
+#import sys
+
+
 import win32com.client                                                  # For Application connection
 import pythoncom
+import pywintypes
 from pkg03.utility import *
 
 """
@@ -19,6 +23,7 @@ except:
 """
 import psutil
 
+#global top
 def is_autocad_process():
     for process in psutil.process_iter(['pid', 'name']):
         if 'acad.exe' in process.info['name'].lower():
@@ -34,23 +39,28 @@ else:
 """
 
 def is_autocad_running():
-    global acad
+    global acad, doc
+    if not is_autocad_process():
+        return False
     try:
         # Try to create a COM object for AutoCAD
         acad = win32com.client.Dispatch("AutoCAD.Application")
+        doc = acad.ActiveDocument
         # If successful, AutoCAD is running
-        return True
+        return doc
     except Exception as e:
         # If an exception occurs, AutoCAD is not running
         print(f"Error: {e}")
         return False
 
+"""
 if is_autocad_process():
     acad = win32com.client.Dispatch("AutoCAD.Application")
 else:
     warn_message('AutoCAD is not Running!!!!!!')
+    #top.withdraw()  # Hide the main window
     quit(1)
-
+"""
 """    
 acad = win32com.client.Dispatch("AutoCAD.Application")                  # AutoCAD connection
 print(acad.__dir__())
@@ -69,28 +79,40 @@ def is_cadopen():
 
     #print(dir(acad))
     #if acad.Visible:
-    if is_autocad_running():
+    doc = is_autocad_running()
+    if doc:
         cadopen = True
-        #return doc
+        return doc
     else:
         msg = 'AutoCAD is not Running!!!\n'
         msg += 'Please open AutoCAD Drawing then try again.'
         warn_message(msg)
     return cadopen
 
+# Prompt on AutoCAD window
+def acprompt(msg):
+    #print(msg)
+    doc.Utility.Prompt(msg + '\n')
+
+# Prompt on Python & AutoCAD window
+def pycad_prompt(msg):
+    print(msg)
+    doc.Utility.Prompt(msg + '\n')
+
 # Verify AutoCAD connection
-def is_cadready():
-    global doc, acprompt, ms
+def is_cadready0():
+    global doc, ms
     cadready = False
     try:
         doc = acad.ActiveDocument
-        acprompt = doc.Utility.Prompt                                   # ACAD prompt
+        #acprompt = doc.Utility.Prompt                                   # ACAD prompt
         ms = doc.ModelSpace
         #print(doc)
         print('File {} connected.'.format(doc.Name))
         #doc.Utility.Prompt("Execute from python\n")
+        acprompt('Hi, from Python : [TGA datacomp].\n')
         cadready = True
-        #return doc
+        return doc
     except AttributeError:
         #print('Connect to AutoCAD failed!!!')
         #print('Press Esc on AutoCAD window then try again.')
@@ -98,11 +120,39 @@ def is_cadready():
         msg += 'Press Esc on AutoCAD window then try again.'
         warn_message(msg)
         return cadready
-    return doc
+    #return doc
+
+# Verify AutoCAD connection [modified on Dec 24, 2023]
+def is_cadready():
+    global doc, acad, ms
+
+    if not is_cadopen():
+        return False
+    try:
+        acad = win32com.client.Dispatch("AutoCAD.Application")
+        doc = acad.ActiveDocument
+        doc.Active
+    except AttributeError:
+        #print('Connect to AutoCAD failed!!!')
+        #print('Press Esc on AutoCAD window then try again.')
+        msg = 'AutoCAD currently in use!!!\n'
+        msg += 'Press Esc on AutoCAD window then try again.'
+        warn_message(msg)
+        return False
+    else:
+        #acprompt = doc.Utility.Prompt                                   # ACAD prompt
+        ms = doc.ModelSpace
+        regen = doc.Regen
+        #print(doc)
+        print('File {} connected.'.format(doc.Name))
+        #doc.Utility.Prompt("Execute from python\n")
+        acprompt('Hi, from Python : [TGA datacomp].\n')
+        cadready = True
+        return doc
 
 # Declare code dictionary
-codedict = {0:['Text', 'Line', 'Circle'], 1:['TextString', None, None], 8:['Layer', 'Layer', 'Layer'],
-            40:['Height', None, 'Radius'], 50:['Rotation', None, None], 62:['Color', 'Color', 'Color']}
+codedict = {0:['Text', 'Line', 'Circle', 'Polyline', 'RasterImage'], 1:['TextString', None, None, None, None], 8:['Layer', 'Layer', 'Layer', 'Layer', 'Layer'],
+            40:['Height', None, 'Radius', None, None], 50:['Rotation', None, None, None, 'Rotation'], 62:['Color', 'Color', 'Color', 'Color', 'Color'], 70:[None, None, None, 'Closed', 'Transparency']} #'ImageVisibility','Transparency'
 
 # Coordinate conversion
 def vtpt(x, y, z=0):
@@ -187,70 +237,122 @@ def layerexist(lay):
     else:
         return False
 
+# Function midpoint by lambda
+midpoint = lambda p, q: [(p[0]+q[0])/2, (p[1]+q[1])/2]
+
 # AutoCAD entity creation
+def is_entity_creation_complete(doc, result):
+    try:
+        # Check if the entity creation is complete
+        # For example: result.HasAttributes
+        return result.EntityName
+    except win32com.client.pywintypes.com_error as e:
+        print(f"Error checking entity creation status: {e}")
+        return False
+
+# Create image
+def add_image(imgpath, pt, size, rotation=0, layer='', check=True):
+    #print(f"lay , check : {lay} , {check}")
+    try:
+        imgObj = ms.AddRaster(imgpath, pt_vtpt(pt), size, rotation)
+    except win32com.client.pywintypes.com_error as e:
+        #print('An image can not be added!!!')
+        print(f"Error creating an image : {e}")
+        return None
+
+    #print(f"imgObj.Entityname : {imgObj.EntityName[4:]}")
+    if layer != '':
+        if check:
+            if not layerexist(layer):
+                doc.Layers.Add(layer)
+        imgObj.Layer = layer
+    return imgObj
+
+    """
+    try:
+        imgObj = ms.AddRaster(imgpath, pt_vtpt(pt), size, rotation)
+        print(f"imgObj : {imgObj}")
+        if lay != '':
+            if check:
+                if not layerexist(lay):
+                    doc.Layers.Add(lay)
+            imgObj.Layer = lay
+        return imgObj
+    except:
+        print('An image can not be added!!!')
+        return None
+    """
+
 # Create point
-def make_point(pt, lay=''):
+def make_point(pt, lay='', check=True):
     pointObj = ms.AddPoint(pt_vtpt(pt))
     if lay != '':
-        if not layerexist(lay):
-            doc.Layers.Add(lay)
+        if check:
+            if not layerexist(lay):
+                doc.Layers.Add(lay)
         pointObj.Layer = lay
     return pointObj
 
 # Create line
-def make_line(p1, p2, lay=''):
+def make_line(p1, p2, lay='', check=True):
     lineObj = ms.AddLine(pt_vtpt(p1), pt_vtpt(p2))
     if lay != '':
-        if not layerexist(lay):
-            doc.Layers.Add(lay)
+        if check:
+            if not layerexist(lay):
+                doc.Layers.Add(lay)
         lineObj.Layer = lay
     return lineObj
 
 # Create polyline
-def make_pline(pts, lay=''):
+def make_pline(pts, lay='', check=True):
     plineObj = ms.AddPolyline(vtFloat(pts2pnts(pts)))
     #print(dir(ms))
     #plineObj = ms.AddLightWeightPolyline(vtFloat(pts2pnts(pts)))
-
     if lay != '':
-        if not layerexist(lay):
-            doc.Layers.Add(lay)
+        if check:
+            if not layerexist(lay):
+                doc.Layers.Add(lay)
         plineObj.Layer = lay
     return plineObj
 
 # Create lwpolyline
-def make_lwpline(pts, lay=''):
+def make_lwpline(pts, lay='', check=True):
     #plineObj = ms.AddPolyline(vtFloat(pts2pnts(pts)))
     #print(dir(ms))
     lwplineObj = ms.AddLightWeightPolyline(vtFloat(pts2pnts(pts)))
-
+    ### Dangerous System HANK
+    # Access the content of the buffer
+    ###MAX_OUTPUT_SIZE = 5000  # Set a reasonable maximum size
+    ###buffer_content = buffer.getvalue()
+    ###limited_buffer_content = buffer_content[:MAX_OUTPUT_SIZE]
+    ###print(f"buffer_content: {limited_buffer_content}")
     if lay != '':
-        if not layerexist(lay):
-            doc.Layers.Add(lay)
+        if check:
+            if not layerexist(lay):
+                doc.Layers.Add(lay)
         lwplineObj.Layer = lay
     return lwplineObj
 
 # Create circle
-def make_circle(pt, r, lay=''):
+def make_circle(pt, r, lay='', check=True):
     circleObj = ms.AddCircle(pt_vtpt(pt), r)
     if lay != '':
-        if not layerexist(lay):
-            doc.Layers.Add(lay)
+        if check:
+            if not layerexist(lay):
+                doc.Layers.Add(lay)
         circleObj.Layer = lay
     return circleObj
 
 # Create Text
-def ptxt(txt, pt, ht, lay):
+def ptxt(txt, pt, ht, lay='', check=True):
     textObj = ms.AddText(txt, pt_vtpt(pt), ht)
-    if not layerexist(lay):
-        doc.Layers.Add(lay)
-    textObj.Layer = lay
+    if lay != '':
+        if check:
+            if not layerexist(lay):
+                doc.Layers.Add(lay)
+        textObj.Layer = lay
     return textObj
 
-# Prompt on Python & AutoCAD window
-def pycad_prompt(msg):
-    print(msg)
-    doc.Utility.Prompt(msg + '\n')
 
 # Select entities by filter codes
 def sscode(ss_name, ftyp, ftdt):
@@ -271,6 +373,16 @@ def sscode(ss_name, ftyp, ftdt):
     filterData = win32com.client.VARIANT(pythoncom.VT_ARRAY | pythoncom.VT_VARIANT, ftdt)
     ssres.Select(5, 0, 0, filterType, filterData)            # Select all with filtering
     return ssres
+
+# Change property of Entity
+# chProp(e, 70, 1)
+def chProp(e, code, val):
+    etype = e.EntityName[4:]
+    #print(etype)
+    #print(codedict[code][codedict[0].index(etype)])
+    #print(codedict)
+    setattr(e, codedict[code][codedict[0].index(etype)], val)
+    return e
 
 # Change selection set property by etype & code
 def chg_ss_bycode(ss, etype, code, val):
@@ -350,6 +462,7 @@ class AcSelectionSets:
                 #print('{} can not be changed'.format(codedict[code][codedict[0].index(etype)]))
                 print('{}: can not be changed by code = {}'.format(etype, code))
         pycad_prompt('Number of entities {}/{} have been changed.'.format(i, self.slset.count))
+
 
 # Get pick points from CAD window
 def getpts(msg, D='3D', DL=True):
@@ -464,12 +577,14 @@ def pts2ac(pts, code_lay, name_lay, point_lay):
 #==========
 def csv2ac(csvdt, code_lay, name_lay, point_lay):
     doc = is_cadready()
-    if doc is None:
+    if doc:
+        print('Drawing Name is {}'.format(doc.Name))                        # Print ACAD Dwg. name
+        print('Import Field data CSV format')
+        #acprompt('Hi, from Python : To manage RTK\n')
+        acprompt('CSV file importing...\n')
+    else:
         return False
-    print('Drawing Name is {}'.format(doc.Name))                        # Print ACAD Dwg. name
-    print('Import Field data CSV format')
-    #acprompt('Hi, from Python : To manage RTK\n')
-    acprompt('CSV file importing...\n')
+        #sys.exit(1)
 
     if not layerexist(code_lay):
         doc.Layers.Add(code_lay)                                      # Add layer if not exist
@@ -487,3 +602,57 @@ def csv2ac(csvdt, code_lay, name_lay, point_lay):
     #show_message('Import Field Data Points : Completed.')
     doc.Regen(1)
     acprompt('Import & Draw Points Completed.\n')
+
+
+# Get AutoCAD system variable
+def get_autocad_variable(variable_name):
+    #acad = win32com.client.Dispatch("AutoCAD.Application")
+
+    # Get the active document
+    #doc = acad.ActiveDocument
+    #doc = is_cadready()
+
+    # Retrieve the value of the AutoCAD system variable
+    variable_value = doc.GetVariable(variable_name)
+
+    return variable_value
+
+# Get Drawing view lower left & upper right
+def get_active_document_bounds():
+
+    # Get the lower-left and upper-right corners
+    #lower_left = get_autocad_variable('VSMIN')
+    #upper_right = get_autocad_variable('VSMAX')
+    view_center = get_autocad_variable('VIEWCTR')
+    height = get_autocad_variable('VIEWSIZE')
+    screenwidth,screenheight = get_autocad_variable('SCREENSIZE')
+    width = height * (screenwidth/screenheight)
+    llx = view_center[0] - (width / 2)
+    lly = view_center[1] - (height / 2)
+    urx = view_center[0] + (width / 2)
+    ury = view_center[1] + (height / 2)
+
+    #return lower_left[:2] + upper_right[:2]
+    return (llx, lly, urx, ury)
+
+# Check if AutoCAD is quiescent
+def is_quiescent():
+    try:
+        # Get the value of the DBMOD system variable
+        dbmod_state = get_autocad_variable("DBMOD")
+
+        # If the value is 0, AutoCAD is quiescent
+        return dbmod_state == 0
+    except Exception as e:
+        # Handle exceptions (e.g., AutoCAD not running)
+        print(f"Error checking quiescent state: {e}")
+        return False
+
+
+"""
+# Get coordinates for the active document
+lower_left, upper_right = get_active_document_coordinates()
+
+print("Lower Left Coordinate:", lower_left)
+print("Upper Right Coordinate:", upper_right)
+"""
