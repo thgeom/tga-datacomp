@@ -38,6 +38,7 @@ class Data4File:
         dfxls = pd.DataFrame(self.dtxls, columns=['Code', 'East', 'North', 'Elevation', 'Layer']) # DataFrame to Excel
         xlsname = self.fdir + self.fxls
         print(dfxls)
+        #dfxls.head()
         #writer = pd.ExcelWriter(xlsname, mode='w')
         try:
             writer = pd.ExcelWriter(xlsname, mode='w')
