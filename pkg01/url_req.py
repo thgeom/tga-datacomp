@@ -568,7 +568,7 @@ def parcel_wfs2device(to='to_dwg'):
         plt.title(f'[{dol_gdf.shape[0]} Land Parcels] Preview')
         plt.show()
         dol_gdf_32647 = dol_gdf.to_crs(32647)  # Convert data frame to 32647
-        #dol_gdf_32647.set_crs('EPSG:32647')
+        dol_gdf_32647.crs = 'EPSG:32647'
         dol_gdf_32647['area'] = dol_gdf_32647['geometry'].area
         #dol_gdf_32647.head(20)
         #dol_gdf_32647.sindex
