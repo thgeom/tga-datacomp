@@ -447,6 +447,17 @@ class AcSelectionSets:
         self.slset.SelectByPolygon(6, pnts, filterType, filterData)            # Select all with filtering
         print('{} entities have been selected.'.format(self.slset.count))
 
+    def ssWindowCond(self, ll, ur, ftyp=None, ftdt=None):
+        # Set format of filter
+        filterType = win32com.client.VARIANT(pythoncom.VT_ARRAY | pythoncom.VT_I2, ftyp)
+        filterData = win32com.client.VARIANT(pythoncom.VT_ARRAY | pythoncom.VT_VARIANT, ftdt)
+        if ftyp is None:
+            self.slset.Select(0, ll, ur)  # Select all with Windows (code #0)
+        else:
+            self.slset.Select(0, ll, ur, filterType, filterData)  # Select all with filtering
+
+        print('{} entities have been selected.'.format(self.slset.count))
+
     def chProp(self, code, val):
         i = 0
         if code==8 and not layerexist(val):                         # If code=8 & layer not exist add it

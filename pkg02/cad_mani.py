@@ -167,6 +167,45 @@ def select_by_polygon():
     for i in ass9.slset:
         print(i.TextString, ' : ', i.InsertionPoint)
     """
+# Entities selection by specified polygon
+def select_by_window():
+    global doc, ass9
+
+    #filter_code = [0, 1, 8]
+    #filter_content = ['Text', 'ป่า', xscode_layer]
+    doc = is_cadready()
+    if doc is None:
+        return False
+    # Get bounds from ACAD window
+    dwg_bounds = get_active_document_bounds()
+    print(f'Dwg. bounds: {dwg_bounds}')
+    ll = dwg_bounds[0:2]
+    ur = dwg_bounds[2:4]
+    #print(f"ll : {ll}")
+    #print(f"ur : {ur}")
+
+    ass9 = AcSelectionSets('SS9')
+
+    """
+    try:
+        #filter_criteria
+        filter_content = filter_criteria
+    except:
+        filter_content = proj_params['FilterContent']
+    """
+
+    #ass9.ssCond([0, 8], ['Text', xscode_layer])              # Select all as condition
+    ll_vtpt = pt_vtpt(ll)
+    ur_vtpt = pt_vtpt(ur)
+    ass9.ssWindowCond(ll_vtpt, ur_vtpt)  # Select by Window as condition
+
+    #ass9.ssWindowCond(ll_vtpt, ur_vtpt, filter_code, filter_content)  # Select by Window as condition
+    #print('{} Texts selected'.format(ass9.slset.count))
+    msg = f'>>>> Total {ass9.slset.count} Entities selected.'
+    print(msg)
+    return ass9
+
+
 
 # Create Excel file of selected data
 def data2file(slset):
