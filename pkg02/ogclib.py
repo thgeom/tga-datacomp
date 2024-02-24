@@ -8,7 +8,7 @@ from datetime import datetime
 
 from pkg02.cadlib import *
 from pkg02.geom import *
-from pkg01.url_req import geoDF2ac
+#from pkg01.url_req import geoDF2ac
 
 from PIL import Image
 import io, sys
@@ -50,10 +50,13 @@ class WfsProperties:
         self.version = version
 
     def getlayer(self):
-        wfs_request_url = f"{self.wfs_url}?service={self.service}&version={self.version}&request=GetCapabilities"
+        #wfs_request_url = f"{self.wfs_url}?service={self.service}&version={self.version}&request=GetCapabilities"
+        wfs_request_params = {'service':self.service, 'version':self.version,'request':'GetCapabilities'}
         # Create a GeoJSON layer using the updated WFS GetCapabilities request
         try:
-            wfs_byte = requests.get(wfs_request_url, timeout=20)
+            #wfs_byte = requests.get(wfs_request_url, timeout=20)
+            ## Test for sending params to requests
+            wfs_byte = requests.get(self.wfs_url, params=wfs_request_params, timeout=20)
         except requests.exceptions.Timeout:
             print("Request to WFS timed out. Try again later or reduce the data scope.")
             wfs_byte = None
@@ -113,11 +116,18 @@ class WfsProperties:
 
         #print(f"bounds[0][0]: {bounds[0][0]}")
         # Craft your new WFS GetFeature request URL based on the new extent
-        wfs_request_url = f"{self.wfs_url}?service={self.service}&version={self.version}&request=GetFeature&typeName={wfs_layer}&viewparams={viewpar}" \
-                          f"&count={max_fea}&bbox={bounds[0]},{bounds[1]},{bounds[2]},{bounds[3]},{crs}&outputFormat=json&srsname=urn:x-ogc:def:crs:{srsname}"
-        print("WFS Request:", wfs_request_url)
+        #wfs_request_url = f"{self.wfs_url}?service={self.service}&version={self.version}&request=GetFeature&typeName={wfs_layer}&viewparams={viewpar}" \
+        #                  f"&count={max_fea}&bbox={bounds[0]},{bounds[1]},{bounds[2]},{bounds[3]},{crs}&outputFormat=json&srsname=urn:x-ogc:def:crs:{srsname}"
+        wfs_request_params = {'service':self.service, 'version':self.version, 'request':'GetFeature', 'typeName':wfs_layer, 'viewparams':viewpar,
+                              'count':max_fea, 'bbox':f"{bounds[0]},{bounds[1]},{bounds[2]},{bounds[3]},{crs}", 'outputFormat':'json', 'srsname':f"urn:x-ogc:def:crs:{srsname}"}
+        #print(f"wfs parama: {wfs_request_params}")
+        #print("WFS Request:", wfs_request_url)
+        print("WFS Url:", self.wfs_url)
+        print("Req. bounds:", self.bounds)
         try:
-            wfs_byte = requests.get(wfs_request_url, timeout=20)
+            #wfs_byte = requests.get(wfs_request_url, timeout=20)
+            ## Sending request with params
+            wfs_byte = requests.get(self.wfs_url, params=wfs_request_params, timeout=20)
         except requests.exceptions.Timeout:
             print("Request to WFS timed out. Try again later or reduce the data scope.")
             wfs_byte = None
@@ -140,7 +150,10 @@ class WfsProperties:
                 d_json = None
 
             self.json_data = d_json
-            self.geodf = gpd.GeoDataFrame.from_features(self.json_data, crs=srsname)
+            if self.json_data:
+                self.geodf = gpd.GeoDataFrame.from_features(self.json_data, crs=srsname)
+            else:
+                self.geodf = None
         else:
             self.json_data = None
             self.geodf = None
@@ -160,7 +173,7 @@ class WmsProperties:
         self.service = service
         self.version = version
 
-    def getdata(self, wms_layer, viewparams, npixel, bounds, crs='EPSG:32647', srsname='EPSG:32647'):
+    def getdata(self, wms_layer, viewparams, npixel, bounds, crs='EPSG:4326', srsname='EPSG:4326'):
         self.srsname = srsname
         #self.bounds = bounds
         x_size = bounds[2] - bounds[0]
@@ -184,10 +197,10 @@ class WmsProperties:
         try:
             layer = layer.rsplit(':')[1]
         except:
-            None
+            layer = None
 
         #print(f"temp2 layer: {layer}")
-        if not layer:
+        if layer is None:
             layer = 'WMS_LAYER'
         self.layer = layer
 
@@ -344,6 +357,8 @@ class TileProperties:
             print(f"[{img_path}] already exist with: {e}.")
 
         #print(f"bounds_X : {bounds_X}")
+        ### Factor for Tiled Images to AutoCAD.
+        ### To be adjusted
         K_img = 1.0045                       ## Factor for image size to AutoCAD !!!
         image_ent = add_image(img_path, bounds_X[0:2], K_img * img_size, 0, img_layer, check=False)
 
@@ -372,27 +387,31 @@ class TileProperties:
 #dol_layers = "V_PARCEL47_LANDNO,V_PARCEL47_LANDNO,V_PARCEL47_LANDNO,V_PARCEL47_LANDNO,V_PARCEL47_LANDNO,V_PARCEL47_LANDNO,V_PARCEL47_LANDNO,V_PARCEL47_LANDNO,V_PARCEL47_LANDNO,V_PARCEL47_LANDNO,V_PARCEL48_LANDNO,V_PARCEL48_LANDNO,V_PARCEL48_LANDNO,V_PARCEL48_LANDNO"
 #dol_viewparams = "utmmap:51363,utmmap:51364,utmmap:50362,utmmap:50361,utmmap:52373,utmmap:52372,utmmap:51361,utmmap:51362,utmmap:52363,utmmap:52364,utmmap:56411,utmmap:56412,utmmap:57413,utmmap:57414"
 
-"""
-wfsObj = WfsProperties(ows_url, 'wfs', '2.0.0')
-wfsObj.getlayer()
+
+#wfsObj = WfsProperties(ows_url, 'wfs', '2.0.0')
+#wfsObj.getlayer()
 #print(wfsObj.layers)
-doc = is_cadready()
-dwg_bounds = get_active_document_bounds()
+
+
+#doc = is_cadready()
+#dwg_bounds = get_active_document_bounds()
 #print(f"dwg_bounds from AC: {dwg_bounds}")
-dwg_bounds_deg = bbox2geo(dwg_bounds)
+#dwg_bounds_deg = bbox2geo(dwg_bounds)
 #print(f"deg_bounds: {dwg_bounds}")
-"""
+
+
 
 def test_wfs():
     wfsObj = WfsProperties(ows_url, 'wfs', '2.0.0')
-
-    wfsObj.getdata("thgeom:BLDG_new_region", 1000, '', dwg_bounds, srsname='EPSG:32647')
+    wfsObj.getdata("thgeom:BLDG_new_region", 10000, '', dwg_bounds, crs=ACAD_CRS, srsname=ACAD_CRS)
     #print(wfsObj.json_data)
     wfsObj.geodf.plot()
-    plt.title('Web Feature Service Preview')
+    plt.title(f"[{wfsObj.geodf.shape[0]} features] : Web Feature Service Preview")
     plt.show()
-    geoDF2ac(wfsObj.geodf, wfsObj.layer, 'id')
+    #geoDF2ac(wfsObj.geodf, wfsObj.layer, 'id')
     #wfsObj.to_shp()
+
+#test_wfs()
 
 def test_wms():
     wmsObj = WmsProperties(ows_url, 'wms', '1.3.0')
@@ -401,12 +420,12 @@ def test_wms():
     #wmsObj.getdata(dol_layers, dol_viewparams, 512, [dwg_bounds[0:2], dwg_bounds[2:4]], crs='EPSG:32647', srsname='EPSG:32647')
 
     #print(f"dwg_bounds: {dwg_bounds}")
-    wmsObj.getdata("thgeom:province", '', 512, dwg_bounds, crs='EPSG:32647', srsname='EPSG:32647')
+    wmsObj.getdata("thgeom:province", '', 512, dwg_bounds, crs=ACAD_CRS, srsname=ACAD_CRS)
 
     plt.imshow(wmsObj.img_data)
     plt.title('Web Map Service Preview')
     plt.show()
-    wmsObj.img_to_acad("d:/usr/tmp")
+    wmsObj.img_to_acad(TEMP_DIRECTORY)
 
 
 # Test TileProperties
@@ -426,19 +445,19 @@ def test_ggs():
     plt.imshow(tileObj.ggs_img)
     plt.title('Google Satellite Preview')
     plt.show()
-    tileObj.img_to_acad("d:/usr/tmp/ggs", tileObj.ggs_img, 'GGS')
+    tileObj.img_to_acad(f"{TEMP_DIRECTORY}", tileObj.ggs_img, 'GGS')
 
 def test_osm():
     plt.imshow(tileObj.osm_img)
     plt.title('OSM Preview')
     plt.show()
-    tileObj.img_to_acad("d:/usr/tmp/osm", tileObj.osm_img, 'OSM')
+    tileObj.img_to_acad(f"{TEMP_DIRECTORY}", tileObj.osm_img, 'OSM')
 
 def test_ggm():
     plt.imshow(tileObj.ggm_img)
     plt.title('Google Map Preview')
     plt.show()
-    tileObj.img_to_acad("d:/usr/tmp/ggm", tileObj.ggm_img, 'GGM')
+    tileObj.img_to_acad(f"{TEMP_DIRECTORY}", tileObj.ggm_img, 'GGM')
 
 #doc = is_cadready()
 #test_wms()

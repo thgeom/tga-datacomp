@@ -1,10 +1,17 @@
 from tkinter import *
+from tkinter import ttk
 from pkg02.cadlib import *
 from pkg01.dataoutput import *
+from pkg01.global_var import *
 
 # Setting Criteria
+def transfer_proj_params(proj_par, select_X):
+    global proj_params, select
+    proj_params = proj_par
+    select = select_X
+
 def sel_criteria():
-    cond_w = Tk()
+    cond_w = Toplevel(top)
     cond_w.geometry("350x180+400+200")   # Size & Position of the window
     cond_w.title("Selection Criteria")   # Adding a title
     def criteria_set():
@@ -13,7 +20,7 @@ def sel_criteria():
         sel_typ = cb1.get()           # selected option
         sel_lay = cb2.get()
         filter_criteria = [sel_typ, sel_lay]
-
+        filter_code = proj_params['FilterCode']
         print('Selection Criteria : {} <==> {}'.format(filter_code, filter_criteria))
         select.entryconfig(4, state=NORMAL)
         cond_w.destroy()

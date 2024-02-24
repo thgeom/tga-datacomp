@@ -617,16 +617,32 @@ def csv2ac(csvdt, code_lay, name_lay, point_lay):
 
 # Get AutoCAD system variable
 def get_autocad_variable(variable_name):
-    #acad = win32com.client.Dispatch("AutoCAD.Application")
+    # Connect to AutoCAD
+    acad = win32com.client.Dispatch("AutoCAD.Application")
 
     # Get the active document
-    #doc = acad.ActiveDocument
+    doc = acad.ActiveDocument
     #doc = is_cadready()
 
     # Retrieve the value of the AutoCAD system variable
     variable_value = doc.GetVariable(variable_name)
 
     return variable_value
+
+# Set AutoCAD system variable
+def set_autocad_variable(variable_name, value):
+    try:
+        # Connect to AutoCAD
+        acad = win32com.client.Dispatch("AutoCAD.Application")
+
+        # Get the active document
+        doc = acad.ActiveDocument
+
+        # Set the value of the AutoCAD system variable
+        doc.SetVariable(variable_name, value)
+
+    except Exception as e:
+        print("Error:", e)
 
 # Get Drawing view lower left & upper right
 def get_active_document_bounds():
