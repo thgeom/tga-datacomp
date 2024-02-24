@@ -5,12 +5,13 @@
 from pkg01.datainput import *
 #from pkg01.url_req import *
 #from pkg02.cadlib import *
-from pkg02.cad_mani import *
+#from pkg02.cad_mani import *
 
 #import matplotlib.pyplot as plt
 #import os, sys
 import subprocess
 
+#from pkg01.global_var import *
 from pkg01.wms_test import *
 from pkg01.osm_test import *
 from pkg01.ggs_test import *
@@ -22,7 +23,7 @@ from pkg02.cad_test import *
 
 from PIL import Image, ImageTk
 import requests
-from io import BytesIO
+#from io import BytesIO
 """
 workdir = "d:/TGA_TEST/datacomp/"
 csvfile = "RTK_X-sec.csv"
@@ -38,26 +39,54 @@ global top, sta_label
 
 #top = set_root_window()
 
+
 def status_window(msg):
     sta_label = Label(top, text=': ', width=40)
     statusbox(sta_label, msg)
 
+# Select parameter file
+def selectfile():
+    global proj_params, doc
 
-"""
-top.config(menu=menubar)
-top.geometry('605x400')
-top.geometry('+150+100')                 # Position ('+Left+Top')
-top.title('THGeom Academy (Field data & CAD manipulation & Export file)')
-sta_label = Label(top, text=': ', width=40)
-sta_label.pack()
-sta_label.place(relx=-0.1, rely=1.0, anchor=SW)
-"""
-#sta_label.pack()
-#top.withdraw()  # Hide the main window
+    #sta_label = Label(top, text=': ', width=60)
+    statusbox(sta_label, 'Open parameter file.')
+    parfile = fd.askopenfilename(title='Select Parameter File',filetypes=[("Par file", "*.par")])
+    if parfile == '':
+        return
+    proj_params = getProjParams('', parfile)
+    #print(proj_params)
+    if proj_params == {}:
+        msg = 'Incorrect Parameter File format!!!'
+        for i in range(3):
+            cad.entryconfig(i, state=DISABLED)
+        warn_message(msg)
+        return
+    conn_ok = setparams(proj_params)               # Check parameters & CAD connection
+    #print(f"Connection to AutoCAD is : {conn_ok}")
+
+    ## To transfer some variables from a module to the other
+    transfer_proj_params(proj_params, select)
+
+    if csvfile != '' and workdir != '' and conn_ok:
+        cad.entryconfig(0, state=NORMAL)
+    if cadapp != '' and workdir != '' and conn_ok:
+        cad.entryconfig(1, state=NORMAL)
+        #cad.entryconfig(2, state=NORMAL)
+        #cad.entryconfig(3, state=NORMAL)
+        #select.entryconfig(0, state=NORMAL)
+        for i in range(4):
+            select.entryconfig(i, state=NORMAL)
+        statusbox(sta_label, doc.Name + ' is connected.')
+        if doc.Name != dwgfile:
+            msg = 'Parameter of DrawFile is not the same as AutoCAD drawing!!!\n'
+            msg += '=====================\n'
+            msg += f"DrawFile = {dwgfile}\n"
+            msg += f"AutoCAD drawing = {doc.Name}"
+            warn_message(msg)
 
 # Set up parameters
 # :project parameter shall be utilized for data manipulation
-def setparams():
+def setparams(proj_params):
     global doc, cadapp
     global workdir, csvfile, csvcolumns, csvencoding, dwgfile
     global xsline_layer, chn_layer
@@ -95,40 +124,20 @@ def setparams():
     else:
         return False
 
-# Select parameter file
-def selectfile():
-    global proj_params, doc
 
-    statusbox(sta_label, 'Open parameter file.')
-    parfile = fd.askopenfilename(title='Select Parameter File',filetypes=[("Par file", "*.par")])
-    if parfile == '':
-        return
-    proj_params = getProjParams('', parfile)
-    #print(proj_params)
-    if proj_params == {}:
-        msg = 'Incorrect Parameter File format!!!'
-        for i in range(3):
-            cad.entryconfig(i, state=DISABLED)
-        warn_message(msg)
-        return
-    conn_ok = setparams()               # Check parameters & CAD connection
-    #print(f"Connection to AutoCAD is : {conn_ok}")
-    if csvfile != '' and workdir != '' and conn_ok:
-        cad.entryconfig(0, state=NORMAL)
-    if cadapp != '' and workdir != '' and conn_ok:
-        cad.entryconfig(1, state=NORMAL)
-        #cad.entryconfig(2, state=NORMAL)
-        #cad.entryconfig(3, state=NORMAL)
-        #select.entryconfig(0, state=NORMAL)
-        for i in range(4):
-            select.entryconfig(i, state=NORMAL)
-        statusbox(sta_label, doc.Name + ' is connected.')
-        if doc.Name != dwgfile:
-            msg = 'Parameter of DrawFile is not the same as AutoCAD drawing!!!\n'
-            msg += '=====================\n'
-            msg += f"DrawFile = {dwgfile}\n"
-            msg += f"AutoCAD drawing = {doc.Name}"
-            warn_message(msg)
+"""
+top.config(menu=menubar)
+top.geometry('605x400')
+top.geometry('+150+100')                 # Position ('+Left+Top')
+top.title('THGeom Academy (Field data & CAD manipulation & Export file)')
+sta_label = Label(top, text=': ', width=40)
+sta_label.pack()
+sta_label.place(relx=-0.1, rely=1.0, anchor=SW)
+"""
+#sta_label.pack()
+#top.withdraw()  # Hide the main window
+
+
 
 # To connect to AutoCAD
 def cad_connected_check():
@@ -236,7 +245,7 @@ def main():
     tools.add_command(label="Google Satellite->Dwg", command=img_ggs2ac)
     tools.add_command(label="Z-19 OpenStreetMaps->Dwg", command=group_img_osm2ac)
     tools.add_command(label="Z-19 Google Maps->Dwg", command=group_img_ggm2ac)
-    tools.add_command(label="Z-20 Google Satellites->Dwg", command=group_img_ggs2ac)
+    tools.add_command(label=f"Z-{GGS_Z} Google Satellites->Dwg", command=group_img_ggs2ac)
 
     tools.add_separator()
     tools.add_command(label="Parcels->Dwg", state=DISABLED, command=parcel2dwg)
@@ -248,14 +257,17 @@ def main():
     tools.add_command(label="WMS->Dwg", state=DISABLED,command=get_wms2ac)
     tools.add_command(label="WFS->Dwg", state=DISABLED,command=get_wfs2ac)
     tools.add_separator()
-    tools.add_command(label="Import Shape File", command=shp2ac)
-    tools.add_command(label="Export Shape/KML File", command=ac2shp)
+    tools.add_command(label="Import Shape/Json/Kml File", command=shp2ac)
+    tools.add_command(label="Export Shape/Json/Kml File", command=ac2shp)
     menubar.add_cascade(label="Tools", menu=tools)
 
     # Add Setting menu
     setting = Menu(menubar, tearoff=0)
     setting.add_command(label="Prevent Sleep", command=prevent_sleep)
     setting.add_command(label="Allow Sleep", command=allow_sleep)
+    setting.add_command(label="Set CRS to EPSG:32647", command=ac_crs_32647)
+    setting.add_command(label="Set CRS to EPSG:32648", command=ac_crs_32648)
+    setting.add_command(label="Store CRS to Dwg", command=put_crs_to_acad)
     menubar.add_cascade(label="Setting", menu=setting)
 
     # Add Help menu
@@ -308,7 +320,13 @@ def main():
     # Create background image
     #img_url = "https://raw.githubusercontent.com/thgeom/tga-datacomp/master/TGA_CoverPage-L9.png"
     img_url = "https://raw.githubusercontent.com/thgeom/tga-datacomp/master/TGA_CoverPage-2.png"
-    thgeom_img = get_url_image(img_url)
+    try:
+        thgeom_img = get_url_image(img_url)
+    except Exception as e:
+        print("Connection Error:", e)
+        print("Please Recheck Internet Connection!!!")
+        print("THGeom Academy: [https://www.facebook.com/THGeomAcademy]")
+        sys.exit(-1)
 
     #thgeom_img = thgeom_img.resize((150, 150), 0)  # For Logo
     #thgeom_img = thgeom_img.resize((515, 278), 0)  # For BG _L9.png

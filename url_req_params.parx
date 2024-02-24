@@ -1,0 +1,25 @@
+{
+"DOL_OWS_url": "https://landsmaps.dol.go.th/geoserver/LANDSMAPS/ows",
+"DOL_layer_name" : "V_PARCEL47_LANDNO,V_PARCEL47_LANDNO,V_PARCEL47_LANDNO,V_PARCEL47_LANDNO,V_PARCEL47_LANDNO,V_PARCEL47_LANDNO,V_PARCEL47_LANDNO,V_PARCEL47_LANDNO,V_PARCEL47_LANDNO,V_PARCEL47_LANDNO,V_PARCEL48_LANDNO,V_PARCEL48_LANDNO,V_PARCEL48_LANDNO,V_PARCEL48_LANDNO",
+"DOL_view_params" : "utmmap:51363,utmmap:51364,utmmap:50362,utmmap:50361,utmmap:52373,utmmap:52372,utmmap:51361,utmmap:51362,utmmap:52363,utmmap:52364,utmmap:56411,utmmap:56412,utmmap:57413,utmmap:57414",
+"DOL_feature_count" : 20000,
+"WMS_url" : "https://geoserver.thgeom-academy.com/geoserver/thgeom/wms",
+"OWS_url" : "https://geoserver.thgeom-academy.com/geoserver/thgeom/ows",
+#"OWS_url" : "https://gisagro40.gistda.or.th/rest/gis/wms",
+#"WFS_url": "https://landsmaps.dol.go.th/geoserver/LANDSMAPS/wfs",
+"WFS_url" : "https://geoserver.thgeom-academy.com/geoserver/thgeom/wfs",
+"WMS_layer" : "thgeom:province",
+#"WMS_layer" : "LANDSMAPS:V_INDEX4000_47_LANDNO",
+#"WFS_layer" : "LANDSMAPS:V_INDEX4000_47_LANDNO",
+"WFS_layer" : "thgeom:BLDG_new_region",
+"WFS_label" : "id",
+"WFS_feature_count" : 50000
+}
+# Note:
+# List of URL request parameters
+#===============
+#"DOL_WFS_url": "https://landsmaps.dol.go.th/geoserver/LANDSMAPS/wfs",
+#"DOL_layer_name" : "V_PARCEL47_LANDNO,V_PARCEL47_LANDNO,V_PARCEL47_LANDNO,V_PARCEL47_LANDNO,V_PARCEL47_LANDNO,V_PARCEL47_LANDNO",
+#"DOL_view_params" : "utmmap:51363,utmmap:51364,utmmap:50362,utmmap:50361,utmmap:52373,utmmap:52372",
+#"DOL_feature_count" : 8000
+
