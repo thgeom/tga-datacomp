@@ -34,14 +34,18 @@ def get_img_tiles(img_layer, zoom, min_lat, min_lon, max_lat, max_lon):
     start_datetime = datetime.datetime.now()
     start_time = start_datetime.strftime("%H:%M:%S")
     pycad_prompt('Processing.')
+    """
     child_win = Toplevel(top)
 
     #child_win = Tk()
     child_win.geometry('695x120')
-    child_win.geometry('+200+250')
+    child_win.geometry('+300+250')
     child_win.title(f"Status of <<< CREATING TILES : [{img_layer}] [Column={max_x - min_x + 1}, Row={min_y - max_y + 1}] @{start_time} >>>")
     child_win.configure(bg='lightgreen')
     child_win.lift()
+    """
+    title = f"Status of <<< CREATING TILES : [{img_layer}] [Column={max_x - min_x + 1}, Row={min_y - max_y + 1}] @{start_time} >>>"
+    child_win = create_status_window(top, title, '695x120', '+300+250')
     # Specify the font size using the 'size' parameter
     label_font = ("Arial", 12)  # Replace "Arial" with your desired font and 12 with the desired font size
     sta_label = Label(child_win, text=': ', width=75, font=label_font)
@@ -105,11 +109,11 @@ def get_img_tiles(img_layer, zoom, min_lat, min_lon, max_lat, max_lon):
 
             # tileObj.img_to_acad("d:/usr/tmp/ggm", tileObj.ggm_img, 'GGM')
             if img_layer == 'GGS':
-                code = tileObj.img_to_acad(f"d:/usr/tmp", tileObj.ggs_img, img_layer)
+                code = tileObj.img_to_acad(f"{IMAGE_PATHNAME}", tileObj.ggs_img, img_layer)
             elif img_layer == 'GGM':
-                code = tileObj.img_to_acad(f"d:/usr/tmp", tileObj.ggm_img, img_layer)
+                code = tileObj.img_to_acad(f"{IMAGE_PATHNAME}", tileObj.ggm_img, img_layer)
             elif img_layer == 'OSM':
-                code = tileObj.img_to_acad(f"d:/usr/tmp", tileObj.osm_img, img_layer)
+                code = tileObj.img_to_acad(f"{IMAGE_PATHNAME}", tileObj.osm_img, img_layer)
 
             if code == -1:
                 #child_win.destroy()
@@ -184,6 +188,8 @@ def get_img_tiles(img_layer, zoom, min_lat, min_lon, max_lat, max_lon):
 ## Example usage
 ## Google satellite images
 def group_img_ggs2ac():
+    from pkg01.global_var import GGS_Z
+
     msg = 'Please define the area required in AutoCAD drawing,\n'
     msg += 'then press OK.'
     show_message(msg)
@@ -191,7 +197,7 @@ def group_img_ggs2ac():
     dwg_bounds = bbox2geo(dwg_bounds)
     print(f"DWG. bounds: {dwg_bounds}")
     img_layer = 'GGS'
-    get_img_tiles(img_layer, zoom=20, min_lat=dwg_bounds[1], min_lon=dwg_bounds[0], max_lat=dwg_bounds[3], max_lon=dwg_bounds[2])
+    get_img_tiles(img_layer, zoom=GGS_Z, min_lat=dwg_bounds[1], min_lon=dwg_bounds[0], max_lat=dwg_bounds[3], max_lon=dwg_bounds[2])
     #get_osm_tiles(zoom=14, min_lat=12.5, min_lon=99.5, max_lat=12.7, max_lon=99.7)
 
 ## Google map images

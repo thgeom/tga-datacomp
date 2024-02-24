@@ -108,13 +108,18 @@ def getWFSlayers(wfs_url):
 # Get list of layers
 def getLayers():
     #ows_url = "https://geoserver.thgeom-academy.com/geoserver/thgeom/ows"
-    lay_list = getWFSlayers(wfs_url)
+    #lay_list = getWFSlayers(wfs_url)
+
+    ## Usingg WfsProperties class
+    wfsObj = WfsProperties(wfs_url, 'wfs', '2.0.0')
+    wfsObj.getlayer()
+    lay_list = wfsObj.layers
     #print(f"Layer list: {lay_list}")
     #print(f'GetCapabilities : {ows_url}')
     print('List of WMS/WFS layers >>>>')
     i = 1
     for layer in lay_list:
-        print(f"{i} : {layer['Name']}")
+        print(f"{i} : {layer}")
         i += 1
 
 ## Get WFS to AutoCAD

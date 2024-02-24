@@ -3,6 +3,7 @@ import matplotlib.pyplot as plt
 import requests
 
 import math
+from pkg01.global_var import *
 from pkg02.cadlib import *
 #from pkg02.cadlib import get_active_document_bounds, get_autocad_variable
 from pkg02.geom import *
@@ -136,8 +137,8 @@ def img_ggs2ac():
     ms = doc.ModelSpace
     dwg_bounds = get_active_document_bounds()
     dwg_bounds = bbox2geo(dwg_bounds)
-    bbox = dwg_bounds[0:2] + dwg_bounds[2:4]
-
+    #bbox = dwg_bounds[0:2] + dwg_bounds[2:4]
+    bbox = dwg_bounds
     print(f"Dwg. bounds : {bbox}")
     #zoom_level = 14
 
@@ -184,7 +185,7 @@ def img_ggs2ac():
     now = datetime.now()                                    # current date and time
     date_time = now.strftime("%m%d%Y%H%M%S")
     #osm_img_path = f"d:/usr/tmp/ggs_image_{date_time}.png"  # define temporary file
-    ggs_img_path = f"d:/usr/tmp/ggs_{img_name}.gif"  # define temporary file as tile
+    ggs_img_path = f"{IMAGE_PATHNAME}/ggs_{img_name}.gif"  # define temporary file as tile
     ggs_img.save(ggs_img_path)
     #print(f"bounds_X : {bounds_X}")
     image_ent = add_image(ggs_img_path, bounds_X[0:2], img_size, 0, 'GGS')
@@ -197,6 +198,7 @@ def img_ggs2ac():
 
 ## Google Map to AutoCAD
 def img_ggm2ac():
+    #from pkg01.global_var import ACAD_CRS
     global doc
 
     doc = is_cadready()
@@ -209,6 +211,8 @@ def img_ggm2ac():
     bbox = dwg_bounds
 
     print(f"Dwg. bounds : {bbox}")
+    #show_current_crs()
+    #print(f"epsg: {ACAD_CRS}")
     #zoom_level = 14
 
     min_lon, min_lat, max_lon, max_lat = bbox
@@ -266,7 +270,7 @@ def img_ggm2ac():
     now = datetime.now()                                    # current date and time
     date_time = now.strftime("%m%d%Y%H%M%S")
     #osm_img_path = f"d:/usr/tmp/ggs_image_{date_time}.png"  # define temporary file
-    ggm_img_path = f"d:/usr/tmp/ggm_{img_name}.png"  # define temporary file as tile
+    ggm_img_path = f"{IMAGE_PATHNAME}/ggm_{img_name}.png"  # define temporary file as tile
     ggm_img.save(ggm_img_path)
     #print(f"bounds_X : {bounds_X}")
     #image_ent = add_image(ggm_img_path, bounds_X[0:2], img_size, 0, 'GGM')

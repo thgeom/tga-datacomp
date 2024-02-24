@@ -3,6 +3,7 @@ import matplotlib.pyplot as plt
 import requests
 
 import math
+from pkg01.global_var import *
 from pkg02.cadlib import *
 #from pkg02.cadlib import get_active_document_bounds, get_autocad_variable
 from pkg02.geom import *
@@ -148,7 +149,7 @@ def img_osm2ac():
     now = datetime.now()                                    # current date and time
     date_time = now.strftime("%m%d%Y%H%M%S")
     #osm_img_path = f"d:/usr/tmp/osm_image_{date_time}.png"  # define temporary file
-    osm_img_path = f"d:/usr/tmp/osm_{img_name}.png"  # define temporary file as tile
+    osm_img_path = f"{IMAGE_PATHNAME}/osm_{img_name}.png"  # define temporary file as tile
     osm_img.save(osm_img_path)
     #print(f"bounds_X : {bounds_X}")
     image_ent = add_image(osm_img_path, bounds_X[0:2], img_size, 0, 'OSM')

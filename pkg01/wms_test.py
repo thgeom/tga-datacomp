@@ -71,6 +71,7 @@ def make_color_range_transparent(image, target_color, tolerance=30):
 
 # WMS to AutoCAD
 def wms2ac(wms_url, wms_layer, view_params, npixel=256):
+    from pkg01.global_var import ACAD_CRS
     global acad, doc
 
     # Check AutoCAD ready or not
@@ -106,7 +107,7 @@ def wms2ac(wms_url, wms_layer, view_params, npixel=256):
         layer = wms_layer.rsplit(':')[1]    ## Not DOL layer
 
     #wms_data = getWMSdata(wms_url,wms_layer,viewpar='',npixel=2048,bounds=[dwg_bounds[0:2],dwg_bounds[2:4]],crs='EPSG:32647',srsname='EPSG:32647')
-    wms_data = getWMSdata(wms_url,wms_layer,viewpar=view_params,npixel=npixel,bounds=b_box,crs='EPSG:32647',srsname='EPSG:32647')
+    wms_data = getWMSdata(wms_url,wms_layer,viewpar=view_params,npixel=npixel,bounds=b_box,crs=ACAD_CRS,srsname=ACAD_CRS)
     if wms_data:
         wms_img = Image.open(io.BytesIO(wms_data))
     else:
@@ -118,7 +119,7 @@ def wms2ac(wms_url, wms_layer, view_params, npixel=256):
     plt.show()
     now = datetime.now()                                    # current date and time
     date_time = now.strftime("%m%d%Y%H%M%S")
-    wms_img_path = f"d:/usr/tmp/wms_image_{date_time}.gif"  # define temporary file
+    wms_img_path = f"{IMAGE_PATHNAME}/wms_image_{date_time}.gif"  # define temporary file
     #wms_img.apply_transparency()
 
     # Specify the target color and tolerance for the color range

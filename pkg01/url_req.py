@@ -16,6 +16,7 @@ import matplotlib.pyplot as plt
 
 from pkg01.global_var import *
 from pkg02.cadlib import *
+from pkg02.ogclib import WfsProperties
 from pkg02.geom import *
 from pkg03.utility import *
 
@@ -39,9 +40,11 @@ def get_last_modified_date(file_path):
 
 # Get url request parameter from file ".parx"
 def getURLconfig():
-    url_reg_dir = "d:/TGA_TEST/datacomp/"
+    #url_req_dir = "d:/TGA_TEST/datacomp/"
+    #url_req_dir = "./"
+    url_req_dir = f"{CWD}/"
     url_req_file = "url_req_params.parx"
-    file_path = url_reg_dir + url_req_file
+    file_path = url_req_dir + url_req_file
     #print(f"File : {file_path}")
     last_modified_date = get_last_modified_date(file_path)
     #print(f"Last modified : {last_modified_date}")
@@ -57,11 +60,11 @@ def getURLconfig():
         # Get the number of days
         days_difference = time_difference.days
         #print(f"Days : {days_difference}")
-        ## Check > 30 Days
+        ## Check > 30 Days for testin state
         if days_difference > 30:
             return False
     try:
-        url_req_params = getProjParams(url_reg_dir, url_req_file)
+        url_req_params = getProjParams(url_req_dir, url_req_file)
     except Exception:
         return False
 
@@ -169,17 +172,23 @@ def geoDF2ac(geodf, layer_name, fieldname=None, label_height=2.5):
     #doc = is_cadready()      # For testing
     start_datetime = datetime.datetime.now()
     start_time = start_datetime.strftime("%H:%M:%S")
+
+    """
     child_win = Toplevel(top)
     #child_win = Tk()
     child_win.geometry('615x100')
-    child_win.geometry('+200+300')
+    child_win.geometry('+300+250')
     child_win.title(f"Status of <<< CREATING FEATURES : [{layer_name}] @{start_time} >>>")
     child_win.configure(bg='lightgreen')
     child_win.lift()
+    """
+    title = f"Status of <<< CREATING FEATURES : [{layer_name}] @{start_time} >>>"
+    child_win = create_status_window(top, title, '695x100', '+300+250')
+
     # Specify the font size using the 'size' parameter
     label_font = ("Arial", 14)  # Replace "Arial" with your desired font and 12 with the desired font size
-    sta_label = Label(child_win, text=': ', width=50, font=label_font)
-    sta_label0 = Label(top, text=': ', width=50)
+    sta_label = Label(child_win, text=': ', width=65, font=label_font)
+    sta_label0 = Label(top, text=': ', width=65)
 
     rows = geodf.shape[0]
     if (rows==0):
@@ -523,6 +532,7 @@ def geoDF2file(gdf, filename, driver='GeoJSON'):
 
 # LandMaps to AutoCAD
 def parcel_wfs2device(to='to_dwg'):
+    from pkg01.global_var import ACAD_CRS
     # Start of LandMaps to AutoCAD
     global acad, doc, cadready
 
@@ -553,12 +563,19 @@ def parcel_wfs2device(to='to_dwg'):
     if dwg_bounds:
         #dol_data = get_api_data_bbox([dwg_bounds[0:2], dwg_bounds[2:4]])   # Send request via TBT
         #dol_data = getWFSdata(dol_wfs_url, dol_layer_name, dol_feature_count, dol_view_params, [dwg_bounds[0:2], dwg_bounds[2:4]], srsname='EPSG:4326')
-        dol_data = getWFSdata(dol_wfs_url, dol_layer_name, dol_feature_count, dol_view_params,
-                              dwg_bounds, srsname='EPSG:4326')
 
+        #dol_data = getWFSdata(dol_wfs_url, dol_layer_name, dol_feature_count, dol_view_params,
+        #                      dwg_bounds, srsname='EPSG:4326')
+
+        ## Using WfsProperties class for get WFS data in GeoDataFrame
+        wfsObj = WfsProperties(dol_wfs_url, 'wfs', '2.0.0')
+        wfsObj.getdata(dol_layer_name, dol_feature_count, dol_view_params, dwg_bounds, crs='EPSG:4326', srsname='EPSG:4326')
+        dol_gdf = wfsObj.geodf
     # Draw land parcels to AutoCAD
-    if dol_data:
-        dol_gdf = gpd.GeoDataFrame.from_features(dol_data, crs='EPSG:4326')
+    if dol_gdf is None:
+        print('No parcel data available!, Please try again later.')
+    else:
+        #dol_gdf = gpd.GeoDataFrame.from_features(dol_data, crs='EPSG:4326')
         #dol_gdf.head()
         #print(dol_gdf)
         #plt.figure(figsize=(8,6))
@@ -567,9 +584,9 @@ def parcel_wfs2device(to='to_dwg'):
         dol_gdf.plot(figsize=(8,5.5), color='lightgreen')
         plt.title(f'[{dol_gdf.shape[0]} Land Parcels] Preview')
         plt.show()
-        dol_gdf_32647 = dol_gdf.to_crs(32647)  # Convert data frame to 32647
-        dol_gdf_32647.crs = 'EPSG:32647'
-        dol_gdf_32647['area'] = dol_gdf_32647['geometry'].area
+        dol_gdf_crs = dol_gdf.to_crs(ACAD_CRS)  # Convert data frame to 32647
+        dol_gdf_crs.crs = ACAD_CRS
+        dol_gdf_crs['area'] = dol_gdf_crs['geometry'].area
         #dol_gdf_32647.head(20)
         #dol_gdf_32647.sindex
         #print(dol_gdf_32647.columns)
@@ -577,18 +594,18 @@ def parcel_wfs2device(to='to_dwg'):
         if to == 'to_file':
             # Define conditions
             #condition1 = (dol_gdf_32647['area'] > 32000)
-            condition1 = (dol_gdf_32647['area'] > 1)
-            condition2 = (dol_gdf_32647['area'] < 700000)
+            condition1 = (dol_gdf_crs['area'] > 1)
+            condition2 = (dol_gdf_crs['area'] < 700000)
             desired_geometry_types = ['Polygon', 'MultiPolygon']
 
             # Create a condition based on geometry types
-            condition3 = dol_gdf_32647.geometry.geom_type.isin(desired_geometry_types)
+            condition3 = dol_gdf_crs.geometry.geom_type.isin(desired_geometry_types)
 
             # Combine conditions using logical operators
             combined_condition = condition1 & condition2 & condition3 # Use '&' for 'and', '|' for 'or'
 
             # Filter the GeoDataFrame based on the combined condition
-            filtered_gdf = dol_gdf_32647[combined_condition]
+            filtered_gdf = dol_gdf_crs[combined_condition]
             print(filtered_gdf)
             #selected_columns = ['parcel_seq', 'land_no', 'geometry', 'area']
             selected_columns = ['land_no', 'geometry', 'area']
@@ -600,19 +617,16 @@ def parcel_wfs2device(to='to_dwg'):
                 #geoDF2file(filtered_gdf[selected_columns],'D:/TGA_TEST/datacomp/kamalasai-new.json')
 
         else:
-            geoDF2ac(dol_gdf_32647, 'Parcels', 'land_no')       # Draw features to AutoCAD
-    else:
-        print('No parcel data!, Please try again later.')
+            geoDF2ac(dol_gdf_crs, 'Parcels', 'land_no')       # Draw features to AutoCAD
 
-
-    #dwg_bounds = get_active_document_bounds()
-    #print(f"The value of Drawing boundary box is: {dwg_bounds}")
     ### End def parcel_wfs2ac()
 
 # Province to AutoCAD
 def prov_wfs2ac():
+    from pkg01.global_var import ACAD_CRS
     global acad, doc, cadready
 
+    #ACAD_CRS = 'EPSG:32648'
     # Check AutoCAD ready or not
     doc = is_cadready()
     if not doc:
@@ -625,17 +639,21 @@ def prov_wfs2ac():
     wfs_layer = "thgeom:province"
     b_box = (98.5, 5.5, 105.5, 21.5)
 
-    prov_data = getWFSdata(wfs_url,wfs_layer,200,viewpar='',bounds=b_box,srsname='EPSG:4326')
+    prov_data = getWFSdata(wfs_url,wfs_layer,500,viewpar='',bounds=b_box,srsname='EPSG:4326')
     prov_gdf = gpd.GeoDataFrame.from_features(prov_data, crs='EPSG:4326')
-    prov_gdf_32647 = prov_gdf.to_crs(32647)  # Convert data frame to 32647
-    print(prov_gdf_32647)
-    prov_gdf_32647.plot()
+    prov_gdf_crs = prov_gdf.to_crs(ACAD_CRS)  # Convert data frame to ACAD_CRS
+    print(prov_gdf_crs)
+    prov_gdf_crs.plot()
     plt.show()
-    geoDF2ac(prov_gdf_32647, 'Provinces', 'PROV_NAM_T', 5000)
+    geoDF2ac(prov_gdf_crs, 'Provinces', 'PROV_NAM_T', 5000)
     # End prov_wfs2ac()
+
+## test prov_wfs2ac()
+#prov_wfs2ac()
 
 # WFS to AutoCAD
 def get_wfs2ac():
+    from pkg01.global_var import ACAD_CRS
     global acad, doc, cadready
 
     # Check AutoCAD ready or not
@@ -653,6 +671,30 @@ def get_wfs2ac():
     dwg_bounds = bbox2geo(dwg_bounds)                                  # Convert 32647 to 4326
     layer = wfs_layer.rsplit(':')[1]    ## Get layer name
     print('Requesting & Processing...')
+    ## Using ogclib for WfsProperties class
+    wfsObj = WfsProperties(wfs_url, 'wfs', '2.0.0')
+
+    wfsObj.getdata(wfs_layer, wfs_feature_count, '', bounds=dwg_bounds, srsname='EPSG:4326')
+    # print(wfsObj.json_data)
+    #print(wfsObj.geodf)
+    if wfsObj.geodf.shape[0]>0:
+        wfs_gdf = wfsObj.geodf
+        wfs_gdf_crs = wfs_gdf.to_crs(ACAD_CRS)  # Convert data frame to 32647
+
+        print(f"[{layer}] : Total {wfs_gdf_crs.shape[0]} features selected.")
+        print(f"List of GeoDataFrame Columns")
+        print(list(wfs_gdf_32647.columns))
+
+        wfs_gdf_crs.plot(figsize=(8, 5.5), color='darkgreen')
+        plt.title(f'[{layer} : {wfs_gdf_crs.shape[0]} Features] Preview')
+        plt.ylabel('Northing')
+        plt.xlabel('Easting')
+        plt.show()
+        geoDF2ac(wfs_gdf_crs, f"WFS_{layer}", wfs_label)
+    else:
+        print('No WFS data!!!')
+
+    """
     wfs_data = getWFSdata(wfs_url,wfs_layer,wfs_feature_count,viewpar='',bounds=dwg_bounds,srsname='EPSG:4326')
     if wfs_data:
         wfs_gdf = gpd.GeoDataFrame.from_features(wfs_data, crs='EPSG:4326')
@@ -671,10 +713,13 @@ def get_wfs2ac():
         geoDF2ac(wfs_gdf_32647, f"WFS_{layer}", wfs_label)
     else:
         print('No WFS data!!!')
+    """
+
     # End get_wfs2ac()
 
 # OSM to AutoCAD
 def osm2ac():
+    from pkg01.global_var import ACAD_CRS
     global acad, doc, cadready
 
     # Check AutoCAD ready or not
@@ -696,13 +741,13 @@ def osm2ac():
     if osm_data:
         osm_gdf_nodes, osm_gdf_edges = ox.utils_graph.graph_to_gdfs(osm_data)
         #osm_gdf_edges.to_crs(4326)
-        osm_gdf_edges_32647 = osm_gdf_edges.to_crs(32647)  # Convert data frame to 32647
-        osm_gdf_nodes_32647 = osm_gdf_nodes.to_crs(32647)  # Convert data frame to 32647
+        osm_gdf_edges_crs = osm_gdf_edges.to_crs(ACAD_CRS)  # Convert data frame to 32647
+        osm_gdf_nodes_crs = osm_gdf_nodes.to_crs(ACAD_CRS)  # Convert data frame to 32647
         #print(osm_gdf_edges_32647)
         #osm_gdf_edges_32647.sindex
-        osm_gdf_edges_32647.plot(figsize=(7,5), color='orange')
-        #osm_gdf_nodes_32647.plot()
-        plt.title(f'[{osm_gdf_edges_32647.shape[0]} OpenStreetMap Edges] Preview')
+        osm_gdf_edges_crs.plot(figsize=(7,5), color='orange')
+        #osm_gdf_nodes_crs.plot()
+        plt.title(f'[{osm_gdf_edges_crs.shape[0]} OpenStreetMap Edges] Preview')
         plt.ylabel('Northing')
         plt.xlabel('Easting')
         plt.show()
@@ -733,7 +778,7 @@ def osm2ac():
         #geoDF2ac(polylines_gdf, 'OpenStreetMaps')
 
         #geoDF2ac(osm_gdf_nodes_32647, 'OpenStreetMaps_Nodes')
-        geoDF2ac(osm_gdf_edges_32647, 'OpenStreetMaps', 'highway')
+        geoDF2ac(osm_gdf_edges_crs, 'OpenStreetMaps', 'highway')
     else:
         print('No OSM data.')
     # End osm2ac()
