@@ -8,9 +8,9 @@ crs_UTM = CRS.from_epsg(UTMz)    # WGS84 UTM zoneXX
 crs_WGS84 = CRS.from_epsg(4326)     # WGS84
 crs_3857 = CRS.from_epsg(3857)      # World Mercator
 
-proj2utm = Transformer.from_crs(crs_WGS84, crs_UTM, always_xy=True, accuracy=0.01)
-proj2geo = Transformer.from_crs(crs_UTM, crs_WGS84, always_xy=True, accuracy=0.01)
-proj3857toUTM = Transformer.from_crs(crs_3857, crs_UTM, always_xy=True, accuracy=0.01)
+proj2utm = Transformer.from_crs(crs_WGS84, crs_UTM, always_xy=True, accuracy=0.001)
+proj2geo = Transformer.from_crs(crs_UTM, crs_WGS84, always_xy=True, accuracy=0.001)
+proj3857toUTM = Transformer.from_crs(crs_3857, crs_UTM, always_xy=True, accuracy=0.001)
 
 utm = Proj(crs_UTM)
 mer = Proj(crs_3857)
@@ -42,7 +42,7 @@ def bbox2geo(b_box):
 
     UTMz = ACAD_CRS.rsplit(':')[1]
     crs_UTM = CRS.from_epsg(UTMz)  # WGS84 UTM zoneXX
-    proj2geo = Transformer.from_crs(crs_UTM, crs_WGS84, always_xy=True, accuracy=0.01)
+    proj2geo = Transformer.from_crs(crs_UTM, crs_WGS84, always_xy=True, accuracy=0.001)
 
     ll = proj2geo.transform(b_box[0], b_box[1])
     ur = proj2geo.transform(b_box[2], b_box[3])
@@ -55,7 +55,7 @@ def bbox_mer2utm(b_box):
 
     UTMz = ACAD_CRS.rsplit(':')[1]
     crs_UTM = CRS.from_epsg(UTMz)  # WGS84 UTM zoneXX
-    proj3857toUTM = Transformer.from_crs(crs_3857, crs_UTM, always_xy=True, accuracy=0.01)
+    proj3857toUTM = Transformer.from_crs(crs_3857, crs_UTM, always_xy=True, accuracy=0.001)
 
     ll = proj3857toUTM.transform(b_box[0], b_box[1])
     ur = proj3857toUTM.transform(b_box[2], b_box[3])

@@ -348,7 +348,11 @@ class TileProperties:
 
     def img_to_acad(self, img_file_location, img_type, img_layer):
         bounds_X = bbox_mer2utm(self.bounds)
-        img_size = bounds_X[2] - bounds_X[0]              # Meters for EPSG:32647
+        dx = bounds_X[2] - bounds_X[0]              # Meters for CRS
+        dy = bounds_X[3] - bounds_X[1]
+        #print(f"dX, dY : ({dx}, {dy})")
+        #img_size = (dx + dy) / 2.0
+        img_size = max(dx, dy)
         #img_path = f"{img_file_location}/{img_layer}_{self.z}_{self.x}_{self.y}.gif"  # [gif,tga,bmp,tif] define temporary file as tile
         img_path = f"{img_file_location}/{self.tile_name}.gif"  # [gif,tga,bmp,tif] define temporary file as tile
         try:
@@ -359,7 +363,7 @@ class TileProperties:
         #print(f"bounds_X : {bounds_X}")
         ### Factor for Tiled Images to AutoCAD.
         ### To be adjusted
-        K_img = 1.0045                       ## Factor for image size to AutoCAD !!!
+        K_img = 1.000                 ## Factor for image size to AutoCAD !!!
         image_ent = add_image(img_path, bounds_X[0:2], K_img * img_size, 0, img_layer, check=False)
 
         # Check if image entity creation is complete
@@ -371,6 +375,45 @@ class TileProperties:
             chProp(image_ent, 70, 15)               # set image to off & transparency
             #doc.Regen(1)
             #print(f"[{img_layer}] Tile Image has been added to AutoCAD drawing.")
+            #matrix = image_ent.GetTransform()
+            #print(f"matrix: {matrix}")
+            #print(f"image_ent: {image_ent.__dir__()}")
+            #print(f"Width: {image_ent.ImageWidth}")
+            #print(f"Height: {image_ent.ImageHeight}")
+            #print(f"ScaleEntity: {image_ent.ScaleEntity.__dir__()}")
+            # u_vector = (dx / 256, 0, 0)  # Example U-vector, change as needed
+            # v_vector = (0, dy / 256, 0)  # Example V-vector, change as needed
+
+            image_ent.ScaleFactor = max(dx, dy)
+            #image_ent.ImageWidth = dx
+            #print(f"Image Height: {image_ent.ImageHeight}")
+            ## Check Image size (dx & dy)
+            ## **** To be TESTED ****
+            if dx < dy:
+                image_ent.ImageHeight = (dx + dy) / 2
+                if (dy-dx)>(dx/256):
+                    adj_x = 0
+                    adj_y = (dy - dx) / 4
+                else:
+                    adj_x = (dy - dx) / 2
+                    adj_y = 0
+                #image_ent.ImageWidth = image_ent.ImageWidth + (dx / 256)  ## Added by 1 pixel
+                image_ent.ImageHeight = image_ent.ImageHeight - adj_y + (dy / 512)
+                #print(f"Corr. Image Height: {image_ent.ImageHeight}")
+                image_ent.ImageWidth = image_ent.ImageWidth + adj_x + (dx / 512)  ## Adjusted by dx&dy
+
+            else:
+                if (dx-dy)>(dx/256):
+                    adj_x = 0
+                    adj_y = (dx - dy) / 4
+                else:
+                    adj_x = (dx - dy) / 2
+                    adj_y = 0
+                image_ent.ImageHeight = image_ent.ImageHeight - adj_y + (dy / 512)
+                #print(f"Corr. Image Height: {image_ent.ImageHeight}")
+                image_ent.ImageWidth = image_ent.ImageWidth + adj_x + (dx / 512)  ## Deduced by dx&dy
+
+
             return image_ent
         else:
             print(f"Any error occurred, the image is not in drawing!!!")
